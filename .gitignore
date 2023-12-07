@@ -1,0 +1,17 @@
+*.vs
+*.sln
+BobbyWZ.dir/
+.env.cmake
+*.bak
+*.vcxproj
+*.filters
+*.user
+cmake_install.cmake
+CmakeFiles/
+Debug/
+Release/
+imgui/
+imgui.ini
+CMakeCache.txt
+
+external/
