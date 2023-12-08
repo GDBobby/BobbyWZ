@@ -71,7 +71,7 @@ namespace MapleLib {
 			/// Trims the AES UserKey for use an AES cryptor
 			/// </summary>
 			static uint8_t* getTrimmedUserKey() {
-				char key[32];
+				uint8_t key[32];
 				for (int i = 0; i < 128; i += 16) {
 					key[i / 4] = UserKey[i];
 				}

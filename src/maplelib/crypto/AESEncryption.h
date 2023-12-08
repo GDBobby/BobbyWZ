@@ -4,11 +4,12 @@
 #include "cryptopp890/aes.h"
 #include "cryptopp890/filters.h"
 
+#include <string>
 #include <iostream>
+#include <stdexcept>
 
 namespace MapleLib {
-	namespace CryptoLib
-	{
+	namespace CryptoLib {
 
 		/// <summary>
 		/// Class to handle the AES Encryption routines
@@ -136,14 +137,14 @@ namespace MapleLib {
 					cryptoStream.Dispose();
 					memStream.Dispose();
 				}
-				catch (Exception e)
+				catch (std::exception e)
 				{
-					Helpers.ErrorLogger.Log(Helpers.ErrorLevel.Critical, "Error disposing AES streams" + e);
+					Helpers.ErrorLogger.Log(Helpers.ErrorLevel.Critical, std::string("Error disposing AES streams") + std::string(e.what()));
 					//Console.WriteLine("Error disposing AES streams" + e);
 				}
 
 				return data;
 			}
-		}
+		};
 	}
 }
