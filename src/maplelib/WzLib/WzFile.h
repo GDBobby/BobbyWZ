@@ -34,14 +34,14 @@ namespace MapleLib {
 			std::wstring path;
 			WzDirectory wzDir;
 			WzHeader header;
-			std::wstring name = "";
+			std::wstring name = L"";
 			int16_t version = 0;
 			uint32_t versionHash = 0;
 			int16_t fileVersion = 0;
 			WzMapleVersion mapleVersion;
 			uint8_t* WzIv;
 
-			WzDirectory getWzDirectory{ return wzDir; }
+			WzDirectory getWzDirectory(){ return wzDir; }
 
 
 			WzObjectType getObjectType() override { return WzObjectType.File; }

@@ -1,4 +1,5 @@
 #pragma once
+
 namespace MapleLib {
 	namespace WzLib {
 		enum class WzPropertyType {
