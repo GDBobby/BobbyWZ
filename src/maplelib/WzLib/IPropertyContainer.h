@@ -12,8 +12,8 @@ namespace MapleLib {
 			virtual void RemoveProperty(WzImageProperty prop) = 0;
 			virtual void ClearProperties() = 0;
 			virtual const std::list<WzImageProperty>& GetWzProperties() const = 0;
-			virtual WzImageProperty* GetPropertyByName(const std::string& name) const = 0;
-			virtual void SetPropertyByName(const std::string& name, WzImageProperty* prop) = 0;
+			virtual WzImageProperty* GetPropertyByName(const std::wstring& name) const = 0;
+			virtual void SetPropertyByName(const std::wstring& name, WzImageProperty* prop) = 0;
 
 			virtual ~IPropertyContainer() = default;
 		};

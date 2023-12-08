@@ -8,7 +8,7 @@
 
 namespace MapleLib {
     namespace Helpers {
-        enum ErrorLevel {
+        enum class ErrorLevel {
             MissingFeature,
             IncorrectStructure,
             Critical,

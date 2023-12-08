@@ -6,6 +6,7 @@
 
 #include "Util/WzBinaryReader.h"
 #include "Util/WzTool.h"
+#include "Util/ParseLine.h"
 
 namespace MapleLib {
     namespace WzLib {
@@ -87,22 +88,8 @@ namespace MapleLib {
             WzImageProperty GetFromPath(std::wstring path) {
                 if (reader != null && !parsed) { ParseImage(); }
 
-                std::vector<std::wstring> segments{};
-                {
-                    std::wstring segment{};
+                std::vector<std::wstring> segments{ Util::ParseLines(path) };
 
-                    uint32_t begOffset = 0;
-                    uint32_t nextOffset = 0;
-                    while (begOffset < path.length()) {
-                        //might need to do a little bit mroe here, but moving on
-                        nextOffset = path.find_first_of(L'/');
-                        segment = path.substr(begOffset, nextOffset - begOffset);
-                        begOffset = nextOffset + 1;
-                        if (!segment.empty()) {
-                            segments.push_back(segment);
-                        }
-                    }
-                }
                 if (segments[0] == L"..") {
                     return null;
                 }
@@ -193,10 +180,7 @@ namespace MapleLib {
                 parsed = true;
             }
 
-            /// <summary>
             /// Parses the image from the wz filetod
-            /// </summary>
-            /// <param name="wzReader">The BinaryReader that is currently reading the wz file</param>
             void ParseImage() {
                 if (parsed) return;
                 else if (changed) { parsed = true; return; }

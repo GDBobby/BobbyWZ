@@ -1,153 +1,101 @@
 #pragma once
 
 #include <string>
+#include <stdexcept>
+#include "WzFile.h"
+#include "WzObjectType.h"
 
-namespace MapleLib {namespace WzLib {
-    /// <summary>
-    /// An abstract class for wz objects
-    /// </summary>
-    class WzObject : IDisposable {
-    private:
-        object tag = null;
-        object tag2 = null;
-        object tag3 = null;
+namespace MapleLib {
+    namespace WzLib {
+        /// <summary>
+        /// An abstract class for wz objects
+        /// </summary>
+        class WzObject : IDisposable {
+        private:
+            object tag = null;// Used in HaCreator to save already parsed images
+            object tag2 = null;// Used in HaCreator's MapSimulator to save already parsed textures
+            object tag3 = null;// Used in HaRepacker to save WzNodes
 
-    public:
+        public:
 
-        //public abstract void Dispose(); explicit deconstruction while maintaining the object?
+            //public abstract void Dispose(); explicit deconstruction while maintaining the object?
+            std::wstring name;
+            WzObjectType objectType;
+            WzFile fileParent;
+            WzObject parent;
 
-        std::wstring Name;
-            /// The WzObjectType of the object
-        WzObjectType ObjectType { get; }
-                /// <summary>
-                /// Returns the parent object
-                /// </summary>
-        WzObject Parent;
-                    /// <summary>
-                    /// Returns the parent WZ File
-                    /// </summary>
-        WzFile WzFileParent { get; }
 
-        WzObject this[string name] {
-            get
-            {
-                if (this is WzFile)
-                {
+            virtual std::wstring getName() = 0;
+            virtual void setName() = 0;
+            virtual WzObjectType getObjectType() = 0;
+            virtual void getParent() = 0;
+            virtual void setParent() = 0;
+            virtual WzFile getWzFileParent() = 0; //bruh
+
+            WzObject& at(const std::wstring& name) { //just overload this mfer? what is this is bullshit
+                if (this is WzFile) {
                     return ((WzFile)this)[name];
                 }
-                else if (this is WzDirectory)
-                {
+                else if (this is WzDirectory) {
                     return ((WzDirectory)this)[name];
                 }
-                else if (this is WzImage)
-                {
+                else if (this is WzImage) {
                     return ((WzImage)this)[name];
                 }
-                else if (this is WzImageProperty)
-                {
+                else if (this is WzImageProperty) {
                     return ((WzImageProperty)this)[name];
                 }
-                else
-                {
-                    throw new NotImplementedException();
+                else {
+                    throw std::exception("not implemented)";
                 }
             }
-        }
 
-        public string FullPath {
-            get
-            {
+            std::wstring getFullPath() {
                 if (this is WzFile) return ((WzFile)this).WzDirectory.Name;
-                string result = this.Name;
-                WzObject currObj = this;
-                while (currObj.Parent != null)
-                {
-                    currObj = currObj.Parent;
-                    result = currObj.Name + @"\" + result;
+                std::wstring ret = this.Name;
+                WzObject currObj = *this;
+                while (currObj.getParent() != null) {
+                    currObj = currObj.getParent();
+                    ret = currObj.name + L'\\' + ret;
                 }
                 return result;
             }
-        }
+            void* getHCTag() {
+                return tag;
+            }
+            void setHCTag(void* val) {
+                tag = val;
+            }
+            void* getMSTag() {
+                return tag2;
+            }
+            void setMSTag(void* val) {
+                tag2 = val;
+            }
+            void* getHRTag() {
+                return tag3;
+            }
+            void setHRTag(void* val) {
+                tag3 = val;
+            }
+            virtual void* getWzValue() { return nullptr; }
 
-                            /// <summary>
-                            /// Used in HaCreator to save already parsed images
-                            /// </summary>
-                            public virtual object HCTag
-                            {
-                                get { return tag; }
-                                set { tag = value; }
-                            }
+            virtual void Remove() = 0;
 
-                            /// <summary>
-                            /// Used in HaCreator's MapSimulator to save already parsed textures
-                            /// </summary>
-                            public virtual object MSTag
-                            {
-                                get { return tag2; }
-                                set { tag2 = value; }
-                            }
+            //Credits to BluePoop for the idea of using cast overriding
+            //2015 - That is the worst idea ever, removed and replaced with Get* methods
+            //-bobby - lmao whos writing this shit
+            virtual int GetInt() { throw std::exception("not implemented"); return 0; }
+            virtual int16_t GetShort() { throw std::exception("not implemented"); return 0; }
+            virtual double GetDouble() { throw std::exception("not implemented"); return 0; }
+            virtual float GetFloat() { throw std::exception("not implemented"); return 0; }
+            virtual int64_t GetLong() { throw std::exception("not implemented"); return 0; }
+            virtual std::wstring GetString() { throw std::exception("not implemented"); return 0; }
 
-                                    /// <summary>
-                                    /// Used in HaRepacker to save WzNodes
-                                    /// </summary>
-                                    public virtual object HRTag
-                                    {
-                                        get { return tag3; }
-                                        set { tag3 = value; }
-                                    }
+            virtual Point GetPoint() { throw std::exception("not implemented"); return 0; }
+            virtual Bitmap GetBitmap() { throw std::exception("not implemented"); return 0; }
+            virtual uint8_t* GetBytes() { throw std::exception("not implemented"); return 0; }
 
-                                    public virtual object WzValue { get { return null; } }
-
-                                    public abstract void Remove();
-
-                                    //Credits to BluePoop for the idea of using cast overriding
-                                    //2015 - That is the worst idea ever, removed and replaced with Get* methods
-                                    #region Cast Values
-                                    public virtual int GetInt()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual short GetShort()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual long GetLong()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual float GetFloat()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual double GetDouble()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual string GetString()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual Point GetPoint()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual Bitmap GetBitmap()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-
-                                    public virtual byte[] GetBytes()
-                                    {
-                                        throw new NotImplementedException();
-                                    }
-                                    #endregion
-
-                                }
+        };
+    }
 }

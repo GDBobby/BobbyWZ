@@ -132,20 +132,20 @@ namespace MapleLib {
 					}
 				}
 
-				std::vector<char> EncryptString(std::string stringToDecrypt) {
-					std::vector<char> outputChars;
+				std::vector<wchar_t> EncryptString(std::wstring stringToDecrypt) {
+					std::vector<wchar_t> outputChars;
 					outputChars.resize(stringToDecrypt.length());
 					for (int i = 0; i < stringToDecrypt.length(); i++) {
-						outputChars[i] = (char)(stringToDecrypt[i] ^ ((char)((WzKey[i * 2 + 1] << 8) + WzKey[i * 2])));
+						outputChars[i] = (wchar_t)(stringToDecrypt[i] ^ ((wchar_t)((WzKey[i * 2 + 1] << 8) + WzKey[i * 2])));
 					}
 					return outputChars;
 				}
 
-				std::vector<char> EncryptNonUnicodeString(std::string stringToDecrypt) {
-					std::vector<char> outputChars;
+				std::vector<wchar_t> EncryptNonUnicodeString(std::wstring stringToDecrypt) {
+					std::vector<wchar_t> outputChars;
 					outputChars.resize(stringToDecrypt.length());
 					for (int i = 0; i < stringToDecrypt.length(); i++) {
-						outputChars[i] = (char)(stringToDecrypt[i] ^ WzKey[i]);
+						outputChars[i] = (wchar_t)(stringToDecrypt[i] ^ WzKey[i]);
 					}
 					return outputChars;
 				}
