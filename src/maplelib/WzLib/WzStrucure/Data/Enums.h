@@ -103,9 +103,8 @@ namespace MapleLib {
 
                 //Credits to me and BluePoop
                 //who is me?
-                class PortalType {
-                public:
-                    const std::string PORTALTYPE_STARTPOINT = "sp",
+                namespace PortalType {
+                    static constexpr std::string PORTALTYPE_STARTPOINT = "sp",
                         PORTALTYPE_INVISIBLE = "pi",
                         PORTALTYPE_VISIBLE = "pv",
                         PORTALTYPE_COLLISION = "pc",

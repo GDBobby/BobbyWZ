@@ -84,8 +84,8 @@ namespace MapleLib {
 					writer.Write((uint8_t)5);
 					writer.Write(val);
 				}
-				void ExportXml(StreamWriter writer, int level) override {
-					writer.WriteLine(Util::XmlUtil::Indentation(level) + Util::XmlUtil::EmptyNamedValuePair(L"WzDouble", name, std::to_string(val)));
+				void ExportXml(std::fstream& writer, int level) override {
+					writer << (Util::XmlUtil::Indentation(level) + Util::XmlUtil::EmptyNamedValuePair("WzDouble", name), std::to_string(val));
 				}
 				WzImageProperty DeepClone() override {
 					return WzDoubleProperty(name, val);

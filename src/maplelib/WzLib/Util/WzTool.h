@@ -1,13 +1,14 @@
 #pragma once
 
+#include "../WzMapleVersion.h"
+#include "../../crypto/CryptoConstants.h"
+
 #include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
-
-#include "../../crypto/CryptoConstants.h"
 
 namespace MapleLib { 
 	namespace WzLib {
@@ -85,14 +86,19 @@ namespace MapleLib {
 					}
 				}
 
-				static uint8_t* GetIvByMapleVersion(WzMapleVersion ver) {
+				static std::vector<uint8_t> GetIvByMapleVersion(WzMapleVersion ver) {
 					switch (ver) {
-					case WzMapleVersion::EMS: return CryptoLib::CryptoConstants::WZ_MSEAIV;//?
-					case WzMapleVersion::GMS: return CryptoLib::CryptoConstants::WZ_GMSIV;
+					case WzMapleVersion::EMS: {
+						return CryptoLib::CryptoConstants::WZ_MSEAIV();
+					}
+					case WzMapleVersion::GMS: {
+						return CryptoLib::CryptoConstants::WZ_GMSIV();
+					}
 					case WzMapleVersion::BMS:
 					case WzMapleVersion::CLASSIC:
 					default:
-						return new uint8_t[4];
+						throw std::exception("these are not supported \n");
+						return {};
 					}
 				}
 
@@ -134,9 +140,9 @@ namespace MapleLib {
 				static WzMapleVersion DetectMapleVersion(std::wstring wzFilePath, short& fileVersion) {
 					std::unordered_map<WzMapleVersion, double> mapleVersionSuccessRates{};
 					short version = 0;
-					mapleVersionSuccessRates.Add(WzMapleVersion::GMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion.GMS, version));
-					mapleVersionSuccessRates.Add(WzMapleVersion::EMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion.EMS, version));
-					mapleVersionSuccessRates.Add(WzMapleVersion::BMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion.BMS, version));
+					mapleVersionSuccessRates.Add(WzMapleVersion::GMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::GMS, version));
+					mapleVersionSuccessRates.Add(WzMapleVersion::EMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::EMS, version));
+					mapleVersionSuccessRates.Add(WzMapleVersion::BMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::BMS, version));
 					fileVersion = version;
 					WzMapleVersion mostSuitableVersion = WzMapleVersion::GMS;
 					double maxSuccessRate = 0;

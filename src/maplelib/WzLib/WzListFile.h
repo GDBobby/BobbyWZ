@@ -4,6 +4,8 @@
 #include <list>
 #include "util/WzTool.h"
 #include "Util/WzBinaryReader.h"
+#include "Util/WzBinaryWriter.h"
+#include "WzMapleVersion.h"
 
 
 namespace MapleLib {
@@ -13,48 +15,32 @@ namespace MapleLib {
         /// </summary>
         class ListFileParser {
         public:
-            /// <summary>
             /// Parses a wz list file on the disk
-            /// </summary>
-            /// <param name="filePath">Path to the wz file</param>
-            std::list<std::wstring> ParseListFile(std::wstring filePath, WzMapleVersion version) {
-                return ParseListFile(filePath, WzTool::GetIvByMapleVersion(version));
+            std::vector<std::wstring> ParseListFile(std::wstring filePath, WzMapleVersion version) {
+                return ParseListFile(filePath, Util::WzTool::GetIvByMapleVersion(version));
             }
 
-            /// <summary>
             /// Parses a wz list file on the disk
-            /// </summary>
-            /// <param name="filePath">Path to the wz file</param>
-            static std::list<std::wstring> ParseListFile(std::wstring filePath, uint8_t* WzIv) {
-                std::list<std::wstring> listEntries{};
-                uint8_t* wzFileBytes = File.ReadAllBytes(filePath);
-                Util::WzBinaryReader wzParser{ new MemoryStream(wzFileBytes), WzIv };
-                while (wzParser.PeekChar() != -1) {
-                    int len = wzParser.ReadInt32();
-                    std::vector<int16_t> strChrs(len);
+            static std::vector<std::wstring> ParseListFile(std::wstring& filePath, std::vector<uint8_t>& WzIv) {
+                //uint8_t* wzFileBytes = File.ReadAllBytes(filePath);
+                //Util::WzBinaryReader wzParser{ new MemoryStream(wzFileBytes), WzIv };
+                Util::WzBinaryReader wzParser{ filePath, WzIv };
+                std::vector<std::wstring> entries{ wzParser.ParseListFile() };
 
-                    for (int i = 0; i < len; i++) {
-                        strChrs[i] = (char)wzParser.ReadInt16();
-                    }
-                    wzParser.ReadUInt16(); //encrypted null
-                    std::wstring decryptedStr = wzParser.DecryptString(strChrs);
-                    listEntries.Add(decryptedStr);
-                }
-                wzParser.Close();
-                std::wstring& lastEntry = listEntries.back();
+                std::wstring& lastEntry = entries.back();
                 lastEntry = lastEntry.substr(0, lastEntry.length() - 1) + L"g";
-                return listEntries;
+                return entries;
             }
 
-            static void SaveToDisk(std::wstring path, WzMapleVersion version, std::list<std::wstring> listEntries) {
+            static void SaveToDisk(std::wstring& path, WzMapleVersion version, std::list<std::wstring> listEntries) {
                 SaveToDisk(path, Util::WzTool::GetIvByMapleVersion(version), listEntries);
             }
 
-            static void SaveToDisk(std::wstring path, uint8_t* WzIv, std::list<std::wstring> listEntries) {
+            static void SaveToDisk(std::wstring& path, std::vector<uint8_t>& WzIv, std::list<std::wstring> listEntries) {
                 int lastIndex = listEntries.size() - 1;
                 auto& lastEntry = listEntries.back();
                 lastEntry = lastEntry.substr(0, lastEntry.length() - 1) + L"/";
-                Util::WzBinaryWriter wzWriter{ File.Create(path), WzIv };
+                Util::WzBinaryWriter wzWriter{ path, WzIv };
                 std::wstring s;
                 for (auto iter = listEntries.begin(); iter != listEntries.end(); iter++) {
                     s = *iter;

@@ -384,7 +384,7 @@ namespace MapleLib {
                     if (listWzUsed)
                     {
                         MemoryStream memStream = new MemoryStream();
-                        WzBinaryWriter writer = new WzBinaryWriter(memStream, WzTool.GetIvByMapleVersion(WzMapleVersion.GMS));
+                        WzBinaryWriter writer = new WzBinaryWriter(memStream, Util::WzTool::GetIvByMapleVersion(WzMapleVersion::GMS));
                         writer.Write(2);
                         for (int i = 0; i < 2; i++)
                         {

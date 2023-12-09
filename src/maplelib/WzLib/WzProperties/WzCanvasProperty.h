@@ -128,12 +128,12 @@ namespace MapleLib {
 					writer.Write(bytes);
 				}
 				void ExportXml(StreamWriter writer, int level) override {
-					writer.WriteLine(Util::XmlUtil.Indentation(level) + Util::XmlUtil.OpenNamedTag("WzCanvas", name, false, false) +
-						Util::XmlUtil.Attrib("width", PngProperty.Width.ToString()) +
-						Util::XmlUtil.Attrib("height", PngProperty.Height.ToString(), true, false));
+					writer.WriteLine(Util::XmlUtil::Indentation(level) + Util::XmlUtil::OpenNamedTag("WzCanvas", name, false, false) +
+						Util::XmlUtil::Attrib("width", PngProperty.Width.ToString()) +
+						Util::XmlUtil::Attrib("height", PngProperty.Height.ToString(), true, false));
 
 					WzImageProperty::DumpPropertyList(writer, level, this->WzProperties);
-					writer.WriteLine(Util::XmlUtil.Indentation(level) + XmlUtil.CloseTag("WzCanvas"));
+					writer.WriteLine(Util::XmlUtil::Indentation(level) + Util::XmlUtil::CloseTag("WzCanvas"));
 				}
 
 				/*

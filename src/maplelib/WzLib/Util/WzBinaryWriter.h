@@ -10,23 +10,24 @@ namespace MapleLib {
 			/*
 			   TODO : Maybe WzBinaryReader/Writer should read and contain the hash (this is probably what's going to happen)
 			*/
-			class WzBinaryWriter : BinaryWriter {
+			class WzBinaryWriter {
 			public:
 				uint8_t[] WzKey{};
 				uint32_t Hash{};
 				Hashtable StringCache{};
 				WzHeader Header{};
 				bool LeaveOpen{};
+				std::fstream output;
 
 					
-				WzBinaryWriter(Stream output, std::vector<uint8_t>& WzIv) : this(output, WzIv, false) { }
+				WzBinaryWriter(std::fstream& output, std::vector<uint8_t>& WzIv) : WzBinaryWriter(output, WzIv, false) {}
 
-				WzBinaryWriter(Stream output, std::vector<uint8_t>& WzIv, bool leaveOpen) : base(output), LeaveOpen{ leaveOpen } {
-					WzKey = WzKeyGenerator.GenerateWzKey(WzIv);
+				WzBinaryWriter(std::fstream& output, std::vector<uint8_t>& WzIv, bool leaveOpen) : output{output}, LeaveOpen{leaveOpen} {
+					WzKey = WzKeyGenerator::GenerateWzKey(WzIv);
 					StringCache = new Hashtable();
 				}
 
-				void WriteStringValue(std::string s, int withoutOffset, int withOffset) {
+				void WriteStringValue(std::wstring s, int withoutOffset, int withOffset) {
 					if (s.length() > 4 && StringCache.ContainsKey(s)) {
 						Write((uint8_t)withOffset);
 						Write((int32_t)StringCache[s]);
@@ -42,15 +43,13 @@ namespace MapleLib {
 					}
 				}
 
-				void WriteWzObjectValue(std::string s, uint8_t type) {
+				void WriteWzObjectValue(std::wstring s, uint8_t type) {
 					std::string storeName = type + "_" + s;
-					if (s.length() > 4 && StringCache.ContainsKey(storeName))
-					{
+					if (s.length() > 4 && StringCache.ContainsKey(storeName)) {
 						Write((uint8_t)2);
 						Write((int)StringCache[storeName]);
 					}
-					else
-					{
+					else {
 						int sOffset = (int)(BaseStream.Position - Header.FStart);
 						Write(type);
 						Write(s);

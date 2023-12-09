@@ -32,8 +32,12 @@ namespace MapleLib {
 					return wzKey;
 				}
 
-				static uint8_t* GetIvFromZlz(std::ifstream& zlzStream) {
-					uint8_t iv[4];// = new byte[4];
+				static std::vector<uint8_t> GetIvFromZlz(std::ifstream& zlzStream) {
+					std::vector<uint8_t> iv(4);// = new byte[4];
+					if (!zlzStream.is_open()) {
+						printf("failed to open zlz stream \n");
+						throw std::exception("failed to open file");
+					}
 
 					zlzStream.seekg(0x10040, std::ios::beg);
 					//zlzStream.Seek(0x10040, SeekOrigin.Begin);
@@ -53,11 +57,11 @@ namespace MapleLib {
 					return aes;
 				}
 			public:
-				static uint8_t* GenerateWzKey(uint8_t* WzIv) {
+				static std::vector<uint8_t> GenerateWzKey(std::vector<uint8_t>& WzIv) {
 					return GenerateWzKey(WzIv, MapleLib::CryptoLib::CryptoConstants::getTrimmedUserKey());
 				}
 
-				static uint8_t* GenerateWzKey(uint8_t* WzIv, uint8_t* AesKey) {
+				static std::vector<uint8_t> GenerateWzKey(std::vector<uint8_t>& WzIv, std::vector<uint8_t>& AesKey) {
 					if (((int32_t*)WzIv)[0] == 0) {
 						return new uint8_t[UINT16_MAX]; //memory leak here if i dont fix this. need to replace it iwth a vector or something
 					}

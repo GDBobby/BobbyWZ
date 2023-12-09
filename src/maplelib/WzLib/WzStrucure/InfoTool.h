@@ -22,7 +22,7 @@ namespace MapleLib {
                         //do this check outside of this function
                         return L"";
                     }
-                    return source.getString();
+                    return source.GetString();
                     
                 }
 

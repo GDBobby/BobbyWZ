@@ -3,6 +3,7 @@
 #include "WzObject.h"
 #include "Util/WzBinaryReader.h"
 #include "Util/WzTool.h"
+#include "WzImage.h"
 
 #include <string>
 #include <list>
@@ -22,23 +23,17 @@ namespace MapleLib {
 			std::wstring name;
 			uint32_t hash;
 			int size, checksum, offsetSize;
-			uint8_t* WzIv;
-			WzObject parent;
-			WzFile wzFile;
+			std::vector<uint8_t> WzIv;
 
 			WzObjectType getObjectType() {
 				return WzObjectType::Directory;
-			}
-			WzFile getWzFileParent() {
-				return wzFile;
 			}
 
 			/// <summary>
 			/// Disposes the obejct
 			/// </summary>
 			void Dispose() override {
-				name = null;
-				reader = null;
+				//reader.dipose();
 				for (WzImage& img : images) {
 					img.Dispose();
 				}
@@ -47,8 +42,6 @@ namespace MapleLib {
 				}
 				images.clear();
 				subDirs.clear();
-				images = null;
-				subDirs = null;
 			}
 
 			//public int BlockSize { get { return size; } set { size = value; } }
@@ -91,19 +84,12 @@ namespace MapleLib {
 
 			public WzDirectory() { }
 			public WzDirectory(std::wstring name) : name{ name } {}
-					/// <summary>
-					/// Creates a WzDirectory
-					/// </summary>
-					/// <param name="reader">The BinaryReader that is currently reading the wz file</param>
-					/// <param name="blockStart">The start of the data block</param>
-					/// <param name="parentname">The name of the directory</param>
-					/// <param name="wzFile">The parent Wz File</param>
-			WzDirectory(Util::WzBinaryReader reader, std::wstring dirName, uint32_t verHash, uint8_t* WzIv, WzFile wzFile) :
+			/// Creates a WzDirectory
+			WzDirectory(Util::WzBinaryReader reader, std::wstring dirName, uint32_t verHash, uint8_t* WzIv) :
 				reader{reader},
 				name{dirName},
 				hash{verHash},
 				WzIv{WzIv},
-				wzFile{wzFile}
 			{}
 
 			void ParseDirectory(){
@@ -142,7 +128,7 @@ namespace MapleLib {
 					checksum = reader.ReadCompressedInt();
 					offset = reader.ReadOffset();
 					if (type == 3) {
-						WzDirectory subDir = new WzDirectory(reader, fname, hash, WzIv, wzFile);
+						WzDirectory subDir{ reader, fname, hash, WzIv) };
 						subDir.BlockSize = fsize;
 						subDir.Checksum = checksum;
 						subDir.Offset = offset;
@@ -150,7 +136,7 @@ namespace MapleLib {
 						subDirs.Add(subDir);
 					}
 					else {
-						WzImage img = new WzImage(fname, reader);
+						WzImage img{ fname, reader };
 						img.BlockSize = fsize;
 						img.Checksum = checksum;
 						img.Offset = offset;
@@ -224,8 +210,8 @@ namespace MapleLib {
 					size += WzTool::GetCompressedIntLength(img.Checksum);
 					size += 4;
 					offsetSize += nameLen;
-					offsetSize += WzTool.GetCompressedIntLength(imgLen);
-					offsetSize += WzTool.GetCompressedIntLength(img.Checksum);
+					offsetSize += Util::WzTool::GetCompressedIntLength(imgLen);
+					offsetSize += Util::WzTool::GetCompressedIntLength(img.Checksum);
 					offsetSize += 4;
 					if (img.changed) {
 						imgWriter.Close();
@@ -236,15 +222,15 @@ namespace MapleLib {
 				WzDirectory dir;
 				for (int i = 0; i < subDirs.Count; i++) {
 					dir = subDirs[i];
-					int nameLen = WzTool.GetWzObjectValueLength(dir.name, 3);
+					int nameLen = Util::WzTool::GetWzObjectValueLength(dir.name, 3);
 					size += nameLen;
 					size += subDirs[i].GenerateDataFile(fileName);
-					size += WzTool.GetCompressedIntLength(dir.size);
-					size += WzTool.GetCompressedIntLength(dir.checksum);
+					size += Util::WzTool::GetCompressedIntLength(dir.size);
+					size += Util::WzTool::GetCompressedIntLength(dir.checksum);
 					size += 4;
 					offsetSize += nameLen;
-					offsetSize += WzTool.GetCompressedIntLength(dir.size);
-					offsetSize += WzTool.GetCompressedIntLength(dir.checksum);
+					offsetSize += Util::WzTool::GetCompressedIntLength(dir.size);
+					offsetSize += Util::WzTool::GetCompressedIntLength(dir.checksum);
 					offsetSize += 4;
 				}
 				return size;
@@ -344,7 +330,6 @@ namespace MapleLib {
 
 			void AddDirectory(WzDirectory dir) {
 				subDirs.Add(dir);
-				dir.wzFile = wzFile;
 				dir.Parent = this;
 			}
 

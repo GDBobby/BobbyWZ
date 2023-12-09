@@ -6,30 +6,35 @@
 //using System.Text;
 //using MapleLib.MapleCryptoLib;
 
+
+#include "WzKeyGenerator.h"
+#include "../WzHeader.h"
+
 #include <vector>
 #include <cstdint>
 #include <string>
-
-#include "WzKeyGenerator.h"
+#include <fstream>
+#include <ios>
 
 namespace MapleLib {
 	namespace WzLib {
 		namespace Util { 
 			class WzBinaryReader {// : BinaryReader { what is binary reader
 			public:
+				std::ifstream readFile;
 				std::vector<uint8_t> WzKey{};
 				uint32_t Hash{};
 				WzHeader Header{};
 
-				WzBinaryReader(Stream input, std::vector<uint8_t>& WzIv) : base(input) {
-					WzKey = WzKeyGenerator.GenerateWzKey(WzIv);
+				WzBinaryReader(std::wstring& filePath, std::vector<uint8_t>& WzIv) : WzKey{ WzKeyGenerator::GenerateWzKey(WzIv) } {
+					readFile.open(filePath, std::ios::binary);
 				}
 
-				std::string ReadStringAtOffset(int64_t Offset) {
+				std::wstring ReadStringAtOffset(int64_t Offset) {
 					return ReadStringAtOffset(Offset, false);
 				}
 
-				 std::string ReadStringAtOffset(int64_t Offset, bool readByte) {
+				 std::wstring ReadStringAtOffset(int64_t Offset, bool readByte) {
 					int64_t CurrentOffset = BaseStream.Position;
 					BaseStream.Position = Offset;
 					if (readByte) {
@@ -40,7 +45,7 @@ namespace MapleLib {
 					return ReturnString;
 				}
 
-				std::string ReadString() override {
+				std::wstring ReadString() override {
 					int8_t smallLength = base.ReadSByte();
 
 					if (smallLength == 0) {
@@ -52,14 +57,14 @@ namespace MapleLib {
 					if (smallLength > 0) // Unicode
 					{
 						uint16_t mask = 0xAAAA;
-						if (smallLength == sbyte.MaxValue) {
+						if (smallLength == INT8_MAX) {
 							length = ReadInt32();
 						}
 						else {
 							length = (int32_t)smallLength;
 						}
 						if (length <= 0) {
-							return "";
+							return L"";
 						}
 
 						for (int i = 0; i < length; i++) {
@@ -79,7 +84,7 @@ namespace MapleLib {
 							length = (int32_t)(-smallLength);
 						}
 						if (length <= 0) {
-							return "";
+							return L"";
 						}
 
 						for (int i = 0; i < length; i++) {
@@ -97,12 +102,12 @@ namespace MapleLib {
 				/// Reads an ASCII string, without decryption
 				/// </summary>
 				/// <param name="filePath">Length of bytes to read</param>
-				std::string ReadString(int length) {
+				std::wstring ReadString(int length) {
 					//return Encoding.ASCII.GetString(ReadBytes(length));
 					return ReadString(ReadBytes(length));
 				}
 
-				std::string ReadNullTerminatedString() {
+				std::wstring ReadNullTerminatedString() {
 					std::string retString{};
 					uint8_t b = ReadByte();
 					while (b != 0) {
@@ -112,8 +117,7 @@ namespace MapleLib {
 					return retString;
 				}
 
-				int32_t ReadCompressedInt()
-				{
+				int32_t ReadCompressedInt() {
 					int8_t sb = base.ReadSByte();
 					if (sb == INT8_MIN) {
 						return ReadInt32();
@@ -134,18 +138,38 @@ namespace MapleLib {
 					offset = (offset - Header.FStart) ^ UINT_MAX;
 					offset *= Hash;
 					offset -= CryptoConstants.WZ_OffsetConstant;
-					offset = WzTool.RotateLeft(offset, (uint8_t)(offset & 0x1F));
+					offset = Util::WzTool::RotateLeft(offset, (uint8_t)(offset & 0x1F));
 					uint32_t encryptedOffset = ReadUInt32();
 					offset ^= encryptedOffset;
 					offset += Header.FStart * 2;
 					return offset;
 				}
 
-				std::string DecryptString(std::vector<char>& stringToDecrypt) {
-					std::string outputString = "";
+				std::wstring DecryptString(std::wstring& stringToDecrypt) {
+					std::wstring outputString{};
 					for (int i = 0; i < stringToDecrypt.size(); i++)
-						outputString += (char)(stringToDecrypt[i] ^ ((char)((WzKey[i * 2 + 1] << 8) + WzKey[i * 2])));
+						outputString += (wchar_t)(stringToDecrypt[i] ^ ((wchar_t)((WzKey[i * 2 + 1] << 8) + WzKey[i * 2])));
 					return outputString;
+				}
+
+				//parsedData returned empty?
+				std::vector<std::wstring> ParseListFile() {
+					std::vector<std::wstring> ret{};
+					std::wstring strChrs{};
+					wchar_t readBuf;
+					while (readFile.peek() != readFile.eof()) {
+						int len;
+						readFile.read(reinterpret_cast<char*>(&len), sizeof(len));
+						strChrs.clear();
+						strChrs.reserve(len);
+						for (int i = 0; i < len; i++) {
+							readFile.read(reinterpret_cast<char*>(&readBuf), sizeof(int16_t));
+							strChrs.push_back(readBuf);
+							readFile.seekg(2, std::ios::cur);
+							ret.emplace_back(DecryptString(strChrs));
+						}
+					}
+					return ret;
 				}
 
 				std::string DecryptNonUnicodeString(std::vector<char>& stringToDecrypt) {
@@ -156,8 +180,7 @@ namespace MapleLib {
 					return outputString;
 				}
 
-				std::string ReadStringBlock(uint32_t offset)
-				{
+				std::wstring ReadStringBlock(uint32_t offset) {
 					switch (ReadByte())
 					{
 					case 0:
@@ -167,10 +190,18 @@ namespace MapleLib {
 					case 0x1B:
 						return ReadStringAtOffset(offset + ReadInt32());
 					default:
-						return "";
+						return L"";
 					}
 				}
 
+				void ReadHeader(WzHeader& inHeader) {
+					inHeader.ident = ReadString(4);
+					readFile.read(reinterpret_cast<char*>(&inHeader.fsize), sizeof(uint64_t));
+					readFile.read(reinterpret_cast<char*>(&inHeader.fstart), sizeof(uint32_t));
+					inHeader.copyright = ReadNullTerminatedString();
+					readFile.seekg(inHeader.fstart, std::ios::beg);
+					this->Header = inHeader;
+				}
 			};
 		}
 	}

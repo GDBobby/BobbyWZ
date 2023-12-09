@@ -2,7 +2,7 @@
 
 #include <string>
 #include <stdexcept>
-#include "WzFile.h"
+//#include "WzFile.h"
 #include "WzObjectType.h"
 
 namespace MapleLib {
@@ -10,56 +10,38 @@ namespace MapleLib {
         /// <summary>
         /// An abstract class for wz objects
         /// </summary>
-        class WzObject : IDisposable {
-        private:
-            object tag = null;// Used in HaCreator to save already parsed images
-            object tag2 = null;// Used in HaCreator's MapSimulator to save already parsed textures
-            object tag3 = null;// Used in HaRepacker to save WzNodes
+        class WzObject {
+        protected:
+            void* tag{ nullptr };// Used in HaCreator to save already parsed images
+            void* tag2{ nullptr };// Used in HaCreator's MapSimulator to save already parsed textures
+            void* tag3{ nullptr };// Used in HaRepacker to save WzNodes
 
+            std::wstring name;
+            WzObjectType objectType;
         public:
 
             //public abstract void Dispose(); explicit deconstruction while maintaining the object?
-            std::wstring name;
-            WzObjectType objectType;
-            WzFile fileParent;
-            WzObject parent;
-
+            virtual void Dispose() = 0;
 
             virtual std::wstring getName() = 0;
             virtual void setName() = 0;
             virtual WzObjectType getObjectType() = 0;
-            virtual void getParent() = 0;
-            virtual void setParent() = 0;
-            virtual WzFile getWzFileParent() = 0; //bruh
-
-            WzObject& at(const std::wstring& name) { //just overload this mfer? what is this is bullshit
-                if (this is WzFile) {
-                    return ((WzFile)this)[name];
+            /*
+            virtual std::wstring getFullPath() {
+                * this is a WzDirectory overload
+                if (objectType == WzObjectType::Directory) {
+                    return ((WzFile*)this)->WzDirectory.Name; 
                 }
-                else if (this is WzDirectory) {
-                    return ((WzDirectory)this)[name];
+                *
+                std::wstring ret = getName();
+                WzObject* currObj = this;
+                while (currObj->getParent() != nullptr) {
+                    currObj = currObj->getParent();
+                    ret = currObj->name + L'\\' + ret;
                 }
-                else if (this is WzImage) {
-                    return ((WzImage)this)[name];
-                }
-                else if (this is WzImageProperty) {
-                    return ((WzImageProperty)this)[name];
-                }
-                else {
-                    throw std::exception("not implemented)";
-                }
+                return ret;
             }
-
-            std::wstring getFullPath() {
-                if (this is WzFile) return ((WzFile)this).WzDirectory.Name;
-                std::wstring ret = this.Name;
-                WzObject currObj = *this;
-                while (currObj.getParent() != null) {
-                    currObj = currObj.getParent();
-                    ret = currObj.name + L'\\' + ret;
-                }
-                return result;
-            }
+        */
             void* getHCTag() {
                 return tag;
             }
@@ -79,8 +61,6 @@ namespace MapleLib {
                 tag3 = val;
             }
             virtual void* getWzValue() { return nullptr; }
-
-            virtual void Remove() = 0;
 
             //Credits to BluePoop for the idea of using cast overriding
             //2015 - That is the worst idea ever, removed and replaced with Get* methods

@@ -22,8 +22,7 @@ namespace MapleLib {
             int size, checksum;
             uint32_t offset = 0;
             Util::WzBinaryReader reader;
-            std:list<WzImageProperty> properties = new List<WzImageProperty>();
-            WzObject parent;
+            std:list<WzImageProperty> properties{};
             int blockStart = 0;
             long tempFileStart = 0;
             long tempFileEnd = 0;

@@ -17,7 +17,7 @@ namespace MapleLib {
                 //default constructor??
                 //MapInfo Default = new MapInfo();
             private:
-                WzImage image = null;
+                WzImage image;
             public:
                 MapInfo(){}
 

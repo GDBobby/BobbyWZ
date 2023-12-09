@@ -1,11 +1,19 @@
 working on a better wz parser
-go through
+https://github.com/Xterminatorz/MapleLib
 
+the property classes are doing too much. need them to define what they are, then have another class define their structure.
+general tree
+
+WzFile includes WzTool, WzTool includes WzFile
+
+removed WzFile from WzDirectory
+
+
+go through
 AESEncryotion, CryptoConstants, MapleCrypto, MapleCustomEncryptions,
 WzBinaryReader, WzBinaryWriter, WzKeyGenerator, and ensure no strings were used when a wstring should have been used
 char in C# is 16 bits instead of 8 bits like C++
 
-MapleBool????
 WzExtended??
 
 https://github.com/hadeutscher/MapleLib/

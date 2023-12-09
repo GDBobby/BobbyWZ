@@ -19,186 +19,194 @@
 #include "WzObject.h"
 #include "../helpers/ErrorLog.h"
 #include "Util/ParseLine.h"
+#include "Util/WzTool.h"
+#include "WzMapleVersion.h"
 
 #include <string>
 #include <stdexcept>
+#include <filesystem>
+#include <fstream>
 
 
 namespace MapleLib {
 	namespace WzLib {
-		/// <summary>
+
+		//maybe put the tree in here?
 		/// A class that contains all the information of a wz file
-		/// </summary>
 		class WzFile : WzObject {
 		public:
 			std::wstring path;
-			WzDirectory wzDir;
+			WzDirectory wzDir; //?
 			WzHeader header;
 			std::wstring name = L"";
 			int16_t version = 0;
 			uint32_t versionHash = 0;
 			int16_t fileVersion = 0;
 			WzMapleVersion mapleVersion;
-			uint8_t* WzIv;
+			std::vector<uint8_t> WzIv;
 
-			WzDirectory getWzDirectory(){ return wzDir; }
+			WzDirectory getWzDirectory() { return wzDir; }
+
+			WzObjectType getObjectType() override { return WzObjectType::File; }
 
 
-			WzObjectType getObjectType() override { return WzObjectType.File; }
+			//public WzHeader Header { get { return header; } set { header = value; } }
 
+			//public short Version { get { return fileVersion; } set { fileVersion = value; } }
 
-			//search
-			WzObject this[string name] {
-				get{ return WzDirectory[name]; }
+			//public string FilePath { get { return path; } }
+
+			//public WzMapleVersion MapleVersion { get { return mapleVersion; } set { mapleVersion = value; } }
+
+			//public override WzObject Parent { get { return null; } set { } }
+
+			//public override WzFile WzFileParent { get { return this; } }
+
+			void Dispose() override {
+				if (!wzDir.reader.is_open()) {
+					printf("trying to dispose of a file while reading from it\n");
+					return;
+				}
+				wzDir.reader.close();
+				//header = null;
+				wzDir.Dispose();
+			}
+
+			WzFile(int16_t gameVersion, WzMapleVersion version) : fileVersion{ gameVersion }, mapleVersion{ version } {
+				wzDir{};
+				header = WzHeader::GetDefault();
+				WzIv = Util::WzTool::GetIvByMapleVersion(mapleVersion);
+				wzDir.WzIv = WzIv;
+			}
+
+			WzFile(std::wstring& filePath, WzMapleVersion version) {
+				//name = Path.GetFileName(filePath);
+				// 
+				//convert this from string to wstring
+				name = filePath.substr(name.find_last_of(L'\\'));
+				name = name.substr(0, name.find_last_of(L'.'));
+
+				path = filePath;
+				fileVersion = -1;
+				mapleVersion = version;
+				if (version == WzMapleVersion::GETFROMZLZ) {
+					//FileStream zlzStream = File.OpenRead(Path.Combine(Path.GetDirectoryName(filePath), "ZLZ.dll"));
+					//^idk what that is
+					std::ifstream zlzStream{ filePath + L"ZLZ.dll", std::ios::binary };
+					WzIv = Util::WzKeyGenerator::GetIvFromZlz(zlzStream);
+					zlzStream.close();
+				}
+				else { WzIv = Util::WzTool::GetIvByMapleVersion(version); }
+			}
+
+			WzFile(std::wstring& filePath, int16_t gameVersion, WzMapleVersion version) :
+				path{ filePath },
+				fileVersion{ gameVersion },
+				mapleVersion{ version }
+			{
+				name = filePath.substr(name.find_last_of(L'\\'));
+				name = name.substr(0, name.find_last_of(L'.'));
+				if (version == WzMapleVersion::GETFROMZLZ) {
+					std::ifstream zlzStream{ filePath + L"ZLZ.dll", std::ios::binary };
+					WzIv = Util::WzKeyGenerator::GetIvFromZlz(zlzStream);
+					zlzStream.close();
+				}
+				else {
+					WzIv = Util::WzTool::GetIvByMapleVersion(version);
+				}
+			}
+
+			/// <summary>
+			/// Parses the wz file, if the wz file is a list.wz file, WzDirectory will be a WzListDirectory, if not, it'll simply be a WzDirectory
+			/// </summary>
+			void ParseWzFile() {
+				if (mapleVersion == WzMapleVersion::GENERATE) {
+					throw std::exception("Cannot call ParseWzFile() if WZ file type is GENERATE");
+				}
+				ParseMainWzDirectory();
+				GC.Collect();
+				GC.WaitForPendingFinalizers();
+			}
+
+			void ParseWzFile(uint8_t* WzIv) {
+				if (mapleVersion != WzMapleVersion::GENERATE) {
+					throw std::exception("Cannot call ParseWzFile(byte[] generateKey) if WZ file type is not GENERATE");
+				}
+				this->WzIv = WzIv;
+				ParseMainWzDirectory();
+				GC.Collect();
+				GC.WaitForPendingFinalizers();
+			}
+
+			//directory contains wzfile, or wzfile contains directory?
+			void ParseMainWzDirectory() {
+				if (this->path == L"") {
+					Helpers::ErrorLogger::Log(Helpers::ErrorLevel::Critical, "[Error] Path is null");
+					return;
 				}
 
-				//public WzHeader Header { get { return header; } set { header = value; } }
+				Util::WzBinaryReader reader{ path, WzIv };
+				reader.ReadHeader(header);
+				/* this was moved in WzReader::reader
+				header.ident = reader.ReadString(4);
+				header.fsize = reader.ReadUInt64();
+				header.fstart = reader.ReadUInt32();
+				header.copyright = reader.ReadNullTerminatedString();
+				reader.ReadBytes((int)(Header.FStart - reader.BaseStream.Position));
+				reader.Header = this.Header;
+				*/
+				version = reader.ReadInt16();
+				if (fileVersion == -1) {
+					for (int16_t j = 0; j < INT16_MAX; j++) {
+						fileVersion = j;
+						versionHash = GetVersionHash(version, fileVersion);
+						if (versionHash != 0) {
+							reader.Hash = versionHash;
+							int64_t position = reader.readFile.tellg();
+							WzDirectory testDirectory;
+							try {
+								testDirectory = WzDirectory(reader, name, versionHash, WzIv, this);
+								testDirectory.ParseDirectory();
+							}
+							catch(std::exception e) {
+								reader.readFile.seekg(position, std::ios::beg);
+								continue;
+							}
+							WzImage testImage = testDirectory.GetChildImages()[0];
 
-				//public short Version { get { return fileVersion; } set { fileVersion = value; } }
-
-				//public string FilePath { get { return path; } }
-
-				//public WzMapleVersion MapleVersion { get { return mapleVersion; } set { mapleVersion = value; } }
-
-				//public override WzObject Parent { get { return null; } set { } }
-
-				//public override WzFile WzFileParent { get { return this; } }
-
-					void Dispose() override {
-					if (wzDir.reader == null) return;
-					wzDir.reader.Close();
-					Header = null;
-					path = null;
-					name = null;
-					WzDirectory.Dispose();
-					GC.Collect();
-					GC.WaitForPendingFinalizers();
-				}
-
-				WzFile(int16_t gameVersion, WzMapleVersion version) : fileVersion{ gameVersion }, mapleVersion{ version } {
-					wzDir = new WzDirectory();
-					this.Header = WzHeader.GetDefault();
-					WzIv = WzTool::GetIvByMapleVersion(mapleVersion);
-					wzDir.WzIv = WzIv;
-				}
-
-				WzFile(string filePath, WzMapleVersion version) {
-					name = Path.GetFileName(filePath);
-					path = filePath;
-					fileVersion = -1;
-					mapleVersion = version;
-					if (version == WzMapleVersion::GETFROMZLZ) {
-						FileStream zlzStream = File.OpenRead(Path.Combine(Path.GetDirectoryName(filePath), "ZLZ.dll"));
-						WzIv = Util.WzKeyGenerator.GetIvFromZlz(zlzStream);
-						zlzStream.Close();
-					}
-					else { WzIv = WzTool.GetIvByMapleVersion(version); }
-				}
-
-				WzFile(std::wstring filePath, int16_t gameVersion, WzMapleVersion version) :
-					name{ Path.GetFileName(filePath) },
-					path{ filePath },
-					fileVersion{ gameVersion },
-					mapleVersion{ version }
-				{
-					if (version == WzMapleVersion.GETFROMZLZ) {
-						FileStream zlzStream = File.OpenRead(Path.Combine(Path.GetDirectoryName(filePath), "ZLZ.dll"));
-						WzIv = Util.WzKeyGenerator.GetIvFromZlz(zlzStream);
-						zlzStream.Close();
-					}
-					else {
-						WzIv = WzTool.GetIvByMapleVersion(version);
-					}
-				}
-
-				/// <summary>
-				/// Parses the wz file, if the wz file is a list.wz file, WzDirectory will be a WzListDirectory, if not, it'll simply be a WzDirectory
-				/// </summary>
-				void ParseWzFile() {
-					if (mapleVersion == WzMapleVersion::GENERATE) {
-						throw std::exception("Cannot call ParseWzFile() if WZ file type is GENERATE");
-					}
-					ParseMainWzDirectory();
-					GC.Collect();
-					GC.WaitForPendingFinalizers();
-				}
-
-				void ParseWzFile(uint8_t* WzIv) {
-					if (mapleVersion != WzMapleVersion::GENERATE) {
-						throw std::exception("Cannot call ParseWzFile(byte[] generateKey) if WZ file type is not GENERATE");
-					}
-					this->WzIv = WzIv;
-					ParseMainWzDirectory();
-					GC.Collect();
-					GC.WaitForPendingFinalizers();
-				}
-
-				void ParseMainWzDirectory() {
-					if (this->path == null) {
-						Helpers::ErrorLogger::Log(Helpers::ErrorLevel::Critical, "[Error] Path is null");
-						return;
-					}
-
-					Util::WzBinaryReader reader = new Util::WzBinaryReader(File.Open(this.path, FileMode.Open, FileAccess.Read, FileShare.Read), WzIv);
-
-					this.Header = new WzHeader();
-					this.Header.Ident = reader.ReadString(4);
-					this.Header.FSize = reader.ReadUInt64();
-					this.Header.FStart = reader.ReadUInt32();
-					this.Header.Copyright = reader.ReadNullTerminatedString();
-					reader.ReadBytes((int)(Header.FStart - reader.BaseStream.Position));
-					reader.Header = this.Header;
-					this->version = reader.ReadInt16();
-					if (fileVersion == -1) {
-						for (int16_t j = 0; j < INT16_MAX; j++) {
-							this.fileVersion = j
-								this.versionHash = GetVersionHash(version, fileVersion);
-							if (this.versionHash != 0) {
-								reader.Hash = this.versionHash;
-								int64_t position = reader.BaseStream.Position;
-								WzDirectory testDirectory = null;
-								try {
-									testDirectory = new WzDirectory(reader, this.name, this.versionHash, this.WzIv, this);
-									testDirectory.ParseDirectory();
+							try {
+								reader.readFile.seekg(testImage.Offset, std::ios::beg);
+								uint8_t checkByte;
+								reader.readFile.read((char*)&checkByte, 1);
+								reader.readFile.seekg(position, std::ios::beg);
+								testDirectory.Dispose();
+								switch (checkByte) {
+								case 0x73:
+								case 0x1b: {
+									WzDirectory directory{ reader, name, versionHash, this->WzIv, this };
+									directory.ParseDirectory();
+									this->wzDir = directory;
+									return;
 								}
-								catch {
-									reader.BaseStream.Position = position;
-									continue;
 								}
-								WzImage testImage = testDirectory.GetChildImages()[0];
-
-								try {
-									reader.BaseStream.Position = testImage.Offset;
-									byte checkByte = reader.ReadByte();
-									reader.BaseStream.Position = position;
-									testDirectory.Dispose();
-									switch (checkByte) {
-									case 0x73:
-									case 0x1b: {
-										WzDirectory directory = new WzDirectory(reader, this.name, this.versionHash, this.WzIv, this);
-										directory.ParseDirectory();
-										this.wzDir = directory;
-										return;
-									}
-									}
-									reader.BaseStream.Position = position;
-								}
-								catch {
-									reader.BaseStream.Position = position;
-								}
+								reader.readFile.seekg(position, std::ios::beg);
+							}
+							catch (std::exception e) {
+								reader.readFile.seekg(position, std::ios::beg);
 							}
 						}
-						throw std::exception("Error with game version hash : The specified game version is incorrect and WzLib was unable to determine the version itself");
 					}
-					else
-					{
-						this.versionHash = GetVersionHash(version, fileVersion);
-						reader.Hash = this.versionHash;
-						WzDirectory directory = new WzDirectory(reader, this.name, this.versionHash, this.WzIv, this);
-						directory.ParseDirectory();
-						this.wzDir = directory;
-					}
+					throw std::exception("Error with game version hash : The specified game version is incorrect and WzLib was unable to determine the version itself");
 				}
+				else
+				{
+					versionHash = GetVersionHash(version, fileVersion);
+					reader.Hash = versionHash;
+					WzDirectory directory{ reader, name, versionHash, WzIv, this };
+					directory.ParseDirectory();
+					wzDir = directory;
+				}
+			}
 		private:
 			uint32_t GetVersionHash(int encver, int realver) {
 				int EncryptedVersionNumber = encver;
@@ -208,7 +216,7 @@ namespace MapleLib {
 				std::wstring VersionNumberStr;
 				int a = 0, b = 0, c = 0, d = 0, l = 0;
 
-				VersionNumberStr = std::to_string(VersionNumber);
+				VersionNumberStr = std::to_wstring(VersionNumber);
 
 				for (int i = 0; i < VersionNumberStr.length(); i++) {
 					VersionHash = (32 * VersionHash) + (int)VersionNumberStr[i] + 1;
@@ -242,13 +250,13 @@ namespace MapleLib {
 			}
 		public:
 			void SaveToDisk(string path) {
-				WzIv = WzTool.GetIvByMapleVersion(mapleVersion);
+				WzIv = Util::WzTool::GetIvByMapleVersion(mapleVersion);
 				CreateVersionHash();
 				wzDir.SetHash(versionHash);
 				string tempFile = Path.GetFileNameWithoutExtension(path) + ".TEMP";
 				File.Create(tempFile).Close();
 				wzDir.GenerateDataFile(tempFile);
-				WzTool.StringCache.Clear();
+				Util::WzTool::StringCache.Clear();
 				uint totalLen = wzDir.GetImgOffsets(wzDir.GetOffsets(Header.FStart + 2));
 				WzBinaryWriter wzWriter = new WzBinaryWriter(File.Create(path), WzIv);
 				wzWriter.Hash = (uint32_t)versionHash;
@@ -283,9 +291,9 @@ namespace MapleLib {
 					StreamWriter writer = new StreamWriter(fs);
 
 					int level = 0;
-					writer.WriteLine(XmlUtil.Indentation(level) + XmlUtil.OpenNamedTag("WzFile", this.name, true));
+					writer.WriteLine(Util::XMLUtil::Indentation(level) + Util::XMLUtil::OpenNamedTag("WzFile", this.name, true));
 					this.wzDir.ExportXml(writer, oneFile, level, false);
-					writer.WriteLine(XmlUtil.Indentation(level) + XmlUtil.CloseTag("WzFile"));
+					writer.WriteLine(Util::XMLUtil::Indentation(level) + Util::XMLUtil::CloseTag("WzFile"));
 
 					writer.Close();
 				}
@@ -532,6 +540,7 @@ namespace MapleLib {
 			void Remove() override {
 				Dispose();
 			}
+			};
 		};
 	}
 }

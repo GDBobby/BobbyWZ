@@ -1,7 +1,11 @@
 #pragma once
 
+#include "../WzImageProperty.h"
+
+
 #include <list>
 #include <string>
+
 
 namespace MapleLib {
 	namespace WzLib {
@@ -9,7 +13,7 @@ namespace MapleLib {
 			/// <summary>
 			/// A property that contains several WzExtendedPropertys
 			/// </summary>
-			class WzConvexProperty : WzExtended, IPropertyContainer {
+			class WzConvexProperty : WzImageProperty {
 			public:
 				std::list<WzImageProperty> properties{};
 				std::wstring name;
@@ -101,9 +105,9 @@ namespace MapleLib {
 					}
 				}
 				void ExportXml(StreamWriter writer, int level) override {
-					writer.WriteLine(XmlUtil.Indentation(level) + XmlUtil.OpenNamedTag("WzConvex", this.Name, true));
+					writer.WriteLine(Util::XMLUtil::Indentation(level) + Util::XMLUtil::OpenNamedTag("WzConvex", this.Name, true));
 					WzImageProperty.DumpPropertyList(writer, level, WzProperties);
-					writer.WriteLine(XmlUtil.Indentation(level) + XmlUtil.CloseTag("WzConvex"));
+					writer.WriteLine(Util::XMLUtil::Indentation(level) + Util::XMLUtil::CloseTag("WzConvex"));
 				}
 				void Dispose() override {
 					name = null;
