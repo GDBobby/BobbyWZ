@@ -67,8 +67,7 @@ namespace MapleLib {
 					else {
 						bool unicode = false;
 						for (int i = 0; i < value.length(); i++) {
-							if (value[i] > INT8_MAX)
-							{
+							if (value[i] > INT8_MAX) {
 								unicode = true;
 							}
 						}

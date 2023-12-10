@@ -1,6 +1,22 @@
 scrap functions, pulling out of WzImageProperty
 
 
+std::list<WzImageProperty> WzProperties{};
+
+WzImage* getParentImage() {
+	WzObject* ret = parent;
+	while (parent != nullptr) {
+		if (dynamic_cast<const WzImage*>(parent) != nullptr) {
+			return static_cast<WzImage*>(parent);
+		}
+		else ret = parent->getParent();
+	}
+	//lol this always returns nullptr
+	printf("WzImage::getParentImage() always throws nullptr\n");
+	return nullptr;
+}
+
+
 virtual void ExportXml(std::fstream& writer, int level) {
     printf("I dont think i should bei in WzImageProperty::ExportXML(), maybe full virtual \n");
     /*

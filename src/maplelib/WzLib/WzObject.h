@@ -24,7 +24,7 @@ namespace MapleLib {
             virtual void Dispose() = 0;
 
             virtual std::wstring getName() = 0;
-            virtual void setName() = 0;
+            virtual void setName(std::wstring) = 0;
             virtual WzObjectType getObjectType() = 0;
             /*
             virtual std::wstring getFullPath() {
@@ -42,6 +42,22 @@ namespace MapleLib {
                 return ret;
             }
         */
+            virtual void* getWzValue() { return nullptr; }
+
+            //Credits to BluePoop for the idea of using cast overriding
+            //2015 - That is the worst idea ever, removed and replaced with Get* methods
+            //-bobby - lmao whos writing this shit
+            virtual int GetInt() { throw std::exception("not implemented"); return 0; }
+            virtual int16_t GetShort() { throw std::exception("not implemented"); return 0; }
+            virtual double GetDouble() { throw std::exception("not implemented"); return 0; }
+            virtual float GetFloat() { throw std::exception("not implemented"); return 0; }
+            virtual int64_t GetLong() { throw std::exception("not implemented"); return 0; }
+            virtual std::wstring GetString() { throw std::exception("not implemented"); return 0; }
+
+            virtual Point GetPoint() { throw std::exception("not implemented"); return {}; }
+            virtual Bitmap GetBitmap() { throw std::exception("not implemented"); return {}; }
+            virtual uint8_t* GetBytes() { throw std::exception("not implemented"); return nullptr; }
+
             void* getHCTag() {
                 return tag;
             }
@@ -60,22 +76,6 @@ namespace MapleLib {
             void setHRTag(void* val) {
                 tag3 = val;
             }
-            virtual void* getWzValue() { return nullptr; }
-
-            //Credits to BluePoop for the idea of using cast overriding
-            //2015 - That is the worst idea ever, removed and replaced with Get* methods
-            //-bobby - lmao whos writing this shit
-            virtual int GetInt() { throw std::exception("not implemented"); return 0; }
-            virtual int16_t GetShort() { throw std::exception("not implemented"); return 0; }
-            virtual double GetDouble() { throw std::exception("not implemented"); return 0; }
-            virtual float GetFloat() { throw std::exception("not implemented"); return 0; }
-            virtual int64_t GetLong() { throw std::exception("not implemented"); return 0; }
-            virtual std::wstring GetString() { throw std::exception("not implemented"); return 0; }
-
-            virtual Point GetPoint() { throw std::exception("not implemented"); return 0; }
-            virtual Bitmap GetBitmap() { throw std::exception("not implemented"); return 0; }
-            virtual uint8_t* GetBytes() { throw std::exception("not implemented"); return 0; }
-
         };
     }
 }

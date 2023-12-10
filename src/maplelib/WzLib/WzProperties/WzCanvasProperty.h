@@ -5,6 +5,7 @@
 #include "../Util/ParseLine.h"
 #include "../Util/WzBinaryWriter.h"
 #include "../WzImageProperty.h"
+#include "WzPngProperty.h"
 
 namespace MapleLib {
 	namespace WzLib {
@@ -12,7 +13,7 @@ namespace MapleLib {
 			/// <summary>
 			/// A property that can contain sub properties and has one png image
 			/// </summary>
-			class WzCanvasProperty : WzExtended, IPropertyContainer {
+			class WzCanvasProperty : WzImageProperty {
 			private:
 				std::list<WzImageProperty> properties{};
 				WzPngProperty imageProp;

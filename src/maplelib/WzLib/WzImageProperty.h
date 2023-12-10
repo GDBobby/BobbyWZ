@@ -38,9 +38,7 @@ namespace MapleLib { namespace WzLib {
 
         virtual void WriteValue(Util::WzBinaryWriter writer) = 0;
 
-        virtual WzImageProperty DeepClone() = 0;
-
-        virtual void SetValue(void* value) = 0;
+        virtual WzImageProperty* DeepClone() = 0;
 
     };
     }
