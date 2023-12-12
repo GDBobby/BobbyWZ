@@ -7,35 +7,33 @@ namespace MapleLib {
             bool WzPngProperty::wasFPNGinit{ false };
 
 
-            WzPngProperty::WzPngProperty(Util::WzBinaryReader reader, bool parseNow) {
+            WzPngProperty::WzPngProperty(Util::WzBinaryReader& reader, bool parseNow) : reader{ reader } {
                 // Read compressed bytes
                 width = reader.ReadCompressedInt();
                 height = reader.ReadCompressedInt();
                 format = reader.ReadCompressedInt();
-                reader.readFile.read((char*)(&format2), 1);
-                reader.readFile.seekg(4, std::ios::cur);
-                offs = reader.readFile.tellg();
-                int len;
-                reader.readFile.read((char*)(&len), sizeof(int32_t));
+                format2 = reader.ReadByte();
+                reader.filePosition += 4;
+                offs = reader.filePosition;
+                int32_t len;
+                //reader.readFile.read((char*)(&len), sizeof(int32_t));
+                reader.ReadTemplate<int32_t>(&len);
                 len -= 1;
 
-                reader.readFile.seekg(1, std::ios::cur);
+                reader.filePosition += 1;
 
                 if (len > 0) {
                     if (parseNow) {
                         compressedBytes.resize(len);
-                        throw std::exception("i suspect this will never be called");
-                        //this isnt going to work, wzReader doesnt have a default constructor
-                        wzReader.readFile.read((char*)(&compressedBytes[0]), len);
+                        //wzReader.readFile.read((char*)(&compressedBytes[0]), len);
+                        reader.ReadBytesInto(&compressedBytes[0], len);
 
                         //ParsePng(); //need a parent image wzkey
                     }
                     else {
-                        //reader.BaseStream.Position += len;
-                        reader.readFile.seekg(len, std::ios::cur);
+                        reader.filePosition += len;
                     }
                 }
-                wzReader = reader;
             }
 
             std::vector<uint8_t> WzPngProperty::GetCompressedBytes(bool saveInMemory) {
@@ -44,20 +42,21 @@ namespace MapleLib {
                     return compressedBytes;
                 }
 
-                int64_t pos = wzReader.readFile.tellg();
-                wzReader.readFile.seekg(offs, std::ios::beg);
+                int64_t pos = reader.filePosition;
+                reader.filePosition = offs;
                 int len;
-                wzReader.readFile.read((char*)(&len), sizeof(int32_t));
+                reader.ReadTemplate<int32_t>(&len);
                 len -= 1;
-                wzReader.readFile.seekg(1, std::ios::cur);
+                reader.filePosition += 1;
 
                 if (len > 0) {
                     compressedBytes.resize(len);
-                    wzReader.readFile.read((char*)compressedBytes.data(), len);
+                    //wzReader.readFile.read((char*)compressedBytes.data(), len);
+                    reader.ReadBytesInto(&compressedBytes[0], len);
                 }
-                wzReader.readFile.seekg(pos, std::ios::beg);
+                reader.filePosition = pos;
                 if (!saveInMemory) {
-                    std::vector<uint8_t> copyVec = compressedBytes;
+                    std::vector<uint8_t> copyVec{ compressedBytes };
                     compressedBytes.clear();
                     return copyVec;
                 }
@@ -67,18 +66,18 @@ namespace MapleLib {
 
             Bitmap WzPngProperty::GetPNG(bool saveInMemory) {
                 if (png.data.size() == 0) { //idk how to fix this, maybe a flag?
-                    int64_t pos = wzReader.readFile.tellg();
-                    wzReader.readFile.seekg(offs, std::ios::beg);
+                    int64_t pos = reader.filePosition;
+                    reader.filePosition = offs;
                     int len;
-                    wzReader.readFile.read((char*)(&len), sizeof(int32_t));
+                    reader.ReadTemplate<int32_t>(&len);
                     len -= 1;
-                    wzReader.readFile.seekg(1, std::ios::cur);
+                    reader.filePosition += 1;
                     if (len > 0) {
                         compressedBytes.resize(len);
-                        wzReader.readFile.read((char*)compressedBytes.data(), len);
+                        reader.ReadBytesInto(&compressedBytes[0], len);
                     }
                     ParsePng(); //need parent image wzkey
-                    wzReader.readFile.seekg(pos, std::ios::beg);
+                    reader.filePosition = pos;
                     if (!saveInMemory) {
                         Bitmap copyImage{ png };
                         png.data.clear();
@@ -162,7 +161,7 @@ namespace MapleLib {
                 return compressedBuffer;
             }
 
-            void WzPngProperty::ParsePng(const std::vector<uint8_t>& wzKey) {
+            void WzPngProperty::ParsePng() {
 
                 z_stream zstream;
                 int uncompressedSize = 0;
@@ -198,7 +197,7 @@ namespace MapleLib {
                         blockSize = compressedBytes[readerPos] << 24 + compressedBytes[readerPos + 1] << 16 + compressedBytes[readerPos + 2] << 8 + compressedBytes[readerPos + 3];
                         readerPos += 4;
                         for (int i = 0; i < blockSize; i++) {
-                            outData.push_back(compressedBytes[readerPos + i] ^ wzKey[i]);
+                            outData.push_back(compressedBytes[readerPos + i] ^ reader.WzKey[i]);
                         }
                         readerPos += blockSize;
                     }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 
+/* this isnt used anywhere else??
 namespace MapleLib {
     namespace WzLib {
         namespace WzProperties {
@@ -38,3 +38,4 @@ namespace MapleLib {
         }
     }
 }
+*/

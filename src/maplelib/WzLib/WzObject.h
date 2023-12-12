@@ -26,8 +26,12 @@ namespace MapleLib {
 
             //public abstract void Dispose(); explicit deconstruction while maintaining the object?
 
-            virtual std::wstring getName() = 0;
-            virtual void setName(std::wstring&) = 0;
+            virtual std::wstring getName() {
+                return name;
+            }
+            virtual void setName(std::wstring& name) {
+                this->name = name;
+            }
             virtual WzObjectType getObjectType() = 0;
             /*
             virtual std::wstring getFullPath() {
@@ -59,7 +63,7 @@ namespace MapleLib {
 
             virtual Point GetPoint() { throw std::exception("not implemented"); return {}; }
             virtual Bitmap GetBitmap() { throw std::exception("not implemented"); return {}; }
-            virtual uint8_t* GetBytes() { throw std::exception("not implemented"); return nullptr; }
+            virtual std::vector<uint8_t> GetBytes() { throw std::exception("not implemented"); return {}; }
 
             void* getHCTag() {
                 return tag;

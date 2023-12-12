@@ -33,6 +33,13 @@ namespace MapleLib {
 				WzSubProperty() { }
 
 				WzSubProperty(std::wstring name) : WzImageProperty{ name } {}
+				void setName(std::wstring& name) {
+					this->name = name;
+				}
+				std::wstring getName() {
+					return name;
+				}
+
 				//internal WzImage imgParent;
 
 				/*

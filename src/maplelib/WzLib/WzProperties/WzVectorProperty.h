@@ -20,7 +20,7 @@ namespace MapleLib {
 			public:
 				WzVectorProperty() { }
 
-				WzVectorProperty(std::wstring name) : WzImageProperty{ name } {}
+				WzVectorProperty(std::wstring name) : WzImageProperty{ name }, x{ L"X" }, y{L"Y"} {}
 
 				WzVectorProperty(std::wstring name, WzIntProperty x, WzIntProperty y)
 					: WzImageProperty{ name },

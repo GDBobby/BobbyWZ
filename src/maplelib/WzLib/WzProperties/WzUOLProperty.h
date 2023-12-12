@@ -17,32 +17,30 @@ namespace MapleLib {
 			/// <summary>
 			/// A property that's value is a string
 			/// </summary>
-			class WzUOLProperty : WzExtended {
+			class WzUOLProperty : WzImageProperty {
 			public:
 				std::wstring name, val;
-				WzObject parent;
 				//internal WzImage imgParent;
-				WzObject linkVal;
+							/// <summary>
+							/// The WzPropertyType of the property
+							/// </summary>
+				WzPropertyType getPropertyType() override { return WzPropertyType::UOL; }
 
-				void SetValue(object value) override {
-					val = (std::wstring)value;
-				}
 
-				WzImageProperty DeepClone() override {
-					WzUOLProperty clone{ name, val };
-					clone.linkVal = null;
-					return clone;
-				}
+				WzUOLProperty() { }
 
-				object getWzValue() override {
-#if UOLRES
-					return LinkValue;
-#else
-					return this;
-#endif
-				}
+				WzUOLProperty(std::wstring name) : name{name} {}
 
-#if UOLRES
+					/// <summary>
+					/// Creates a WzUOLProperty with the specified name and value
+					/// </summary>
+					/// <param name="name">The name of the property</param>
+					/// <param name="value">The value of the property</param>
+				WzUOLProperty(std::wstring name, std::wstring value) : name{ name }, val{value} {}
+
+				/*
+				
+				#if UOLRES
 				public override List<WzImageProperty> WzProperties
 				{
 					get
@@ -67,12 +65,9 @@ namespace MapleLib {
 							}
 #endif
 
-							/// <summary>
-							/// The WzPropertyType of the property
-							/// </summary>
-				WzPropertyType getPropertyType() override { return WzPropertyType::UOL; }
 
-				void WriteValue(Util::WzBinaryWriter writer) override {
+
+								void WriteValue(Util::WzBinaryWriter writer) override {
 					writer.WriteStringValue("UOL", 0x73, 0x1B);
 					writer.Write((uint8_t)0);
 					writer.WriteStringValue(val, 0, 1);
@@ -86,7 +81,6 @@ namespace MapleLib {
 					name = null;
 					val = null;
 				}
-
 #if UOLRES
 					public WzObject LinkValue
 				{
@@ -123,19 +117,7 @@ namespace MapleLib {
 					}
 				}
 #endif
-
-				WzUOLProperty() { }
-
-				WzUOLProperty(std::wstring name) : name{name} {}
-
-					/// <summary>
-					/// Creates a WzUOLProperty with the specified name and value
-					/// </summary>
-					/// <param name="name">The name of the property</param>
-					/// <param name="value">The value of the property</param>
-				WzUOLProperty(std::wstring name, std::wstring value) : name{ name }, val{value} {}
-
-#if UOLRES
+				#if UOLRES
 						public override int GetInt()
 					{
 						return LinkValue.GetInt();
@@ -188,6 +170,27 @@ namespace MapleLib {
 				std::wstring ToString() override {
 					return val;
 				}
+
+
+
+				void SetValue(object value) override {
+					val = (std::wstring)value;
+				}
+
+				WzImageProperty DeepClone() override {
+					WzUOLProperty clone{ name, val };
+					clone.linkVal = null;
+					return clone;
+				}
+
+				object getWzValue() override {
+#if UOLRES
+					return LinkValue;
+#else
+					return this;
+#endif
+				}
+				*/
 			};
 		}
 	}

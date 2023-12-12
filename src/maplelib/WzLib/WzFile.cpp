@@ -3,26 +3,27 @@
 
 namespace MapleLib {
 	namespace WzLib {
-		WzFile::WzFile(int16_t gameVersion, std::vector<uint8_t>& wzIV) : fileVersion{ gameVersion }, mapleVersion{ version } {
+		WzFile::WzFile(int16_t gameVersion, std::vector<uint8_t>& wzIV) : 
+			fileVersion{ gameVersion }, 
+			mapleVersion{ version } 
+		{
 			header = WzHeader::GetDefault();
 			WzIv = wzIV;
 		}
 
-		WzFile::WzFile(std::string& filePath, std::vector<uint8_t>& wzIV) {
+		WzFile::WzFile(std::wstring& filePath, std::vector<uint8_t>& wzIV) {
 			//name = Path.GetFileName(filePath);
 			// 
 			//convert this from string to wstring
-			std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-			path = converter.from_bytes(filePath);
 
-			name = path.substr(path.find_last_of(L'\\'));
+			name = filePath.substr(filePath.find_last_of(L'\\'));
 			name = name.substr(0, name.find_last_of(L'.'));
 			printf("wzfile name : %s \n", name.c_str());
 
 			fileVersion = -1;
 		}
 
-		WzFile::WzFile(std::string& filePath, int16_t gameVersion, std::vector<uint8_t>& wzIV) :
+		WzFile::WzFile(std::wstring& filePath, int16_t gameVersion, std::vector<uint8_t>& wzIV) :
 			path{ filePath },
 			fileVersion{ gameVersion },
 			mapleVersion{ version }

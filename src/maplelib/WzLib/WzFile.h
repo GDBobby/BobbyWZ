@@ -37,9 +37,9 @@ namespace MapleLib {
 		public:
 			WzFile(int16_t gameVersion, std::vector<uint8_t>& wzIV);
 
-			WzFile(std::string& filePath, std::vector<uint8_t>& wzIV);
+			WzFile(std::wstring& filePath, std::vector<uint8_t>& wzIV);
 
-			WzFile(std::string& filePath, int16_t gameVersion, std::vector<uint8_t>& wzIV);
+			WzFile(std::wstring& filePath, int16_t gameVersion, std::vector<uint8_t>& wzIV);
 
 			std::wstring path;
 			WzHeader header{};
@@ -74,29 +74,15 @@ namespace MapleLib {
 			/// <summary>
 			/// Parses the wz file, if the wz file is a list.wz file, WzDirectory will be a WzListDirectory, if not, it'll simply be a WzDirectory
 			/// </summary>
-			void ParseWzFile() {
-				if (mapleVersion == WzMapleVersion::GENERATE) {
-					throw std::exception("Cannot call ParseWzFile() if WZ file type is GENERATE");
-				}
-				ParseMainWzDirectory();
-			}
-
-			void ParseWzFile(std::vector<uint8_t>& WzIv) {
-				if (mapleVersion != WzMapleVersion::GENERATE) {
-					throw std::exception("Cannot call ParseWzFile(byte[] generateKey) if WZ file type is not GENERATE");
-				}
-				this->WzIv = WzIv;
-				ParseMainWzDirectory();
-			}
 			void GetVersionHash();
 
 		private:
 
 			void CreateVersionHash() {
 				versionHash = 0;
-				std::wstring fileVersionString = std::to_string(fileVersion);
+				std::wstring fileVersionString = std::to_wstring(fileVersion);
 				for (wchar_t& ch : fileVersionString) {
-					versionHash = (versionHash * 32) + (uint8_t)ch + 1;
+					versionHash = (versionHash * 32) + static_cast<uint8_t>(ch) + 1;
 				}
 				uint32_t a = (versionHash >> 24) & 0xFF;
 				uint32_t b = (versionHash >> 16) & 0xFF;
@@ -105,10 +91,11 @@ namespace MapleLib {
 				version = static_cast<uint8_t>(~(a ^ b ^ c ^ d));
 			}
 		public:
+			/*
 			void SaveToDisk(std::wstring& path) {
 				CreateVersionHash();
 				wzDir.SetHash(versionHash);
-				string tempFile = Path.GetFileNameWithoutExtension(path) + ".TEMP";
+				string tempFile = Path.GetFileNameWithoutExtension(path) + L".TEMP";
 				File.Create(tempFile).Close();
 				wzDir.GenerateDataFile(tempFile);
 				Util::WzTool::StringCache.Clear();
@@ -139,7 +126,6 @@ namespace MapleLib {
 				GC.Collect();
 				GC.WaitForPendingFinalizers();
 			}
-
 			void ExportXml(string path, bool oneFile) {
 				if (oneFile) {
 					FileStream fs = File.Create(path + "/" + this.name + ".xml");
@@ -157,7 +143,6 @@ namespace MapleLib {
 					throw std::exception("Under Construction");
 				}
 			}
-
 			std::list<WzObject> GetObjectsFromWildcardPath(std::wstring path) {
 				if (path.ToLower() == name.ToLower()) {
 					return new List<WzObject>{ WzDirectory };
@@ -372,6 +357,7 @@ namespace MapleLib {
 				}
 				return curObj;
 			}
+			*/
 
 			bool strMatch(std::wstring strWildCard, std::wstring strCompare) {
 				if (strWildCard.length() == 0) return strCompare.length() == 0;
@@ -392,10 +378,7 @@ namespace MapleLib {
 				return false;
 			}
 
-			void Remove() override {
-				Dispose();
-			}
-			};
+			
 		};
 	}
 }

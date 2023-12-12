@@ -16,14 +16,15 @@ namespace MapleLib {
 			class WzCanvasProperty : WzImageProperty {
 			public:	
 				WzCanvasProperty() { }
-				WzCanvasProperty(std::wstring name) : name{ name } { }
+				WzCanvasProperty(std::wstring name) : WzImageProperty{ name } { }
 
 			private:
-				WzPngProperty imageProp;
-				std::wstring name;
-				WzObject parent;
+				std::unique_ptr<WzPngProperty> imageProp;
 				//internal WzImage imgParent;
 			public:
+				void setName(std::wstring& name) { this->name = name; }
+				std::wstring getName() { return name; }
+				/*
 				void SetValue(object value) override {
 					imageProp.SetValue(value);
 				}
@@ -40,75 +41,11 @@ namespace MapleLib {
 				somekindofenum getWzValue() override {
 					return somekindofenum::PngProperty;
 				}
+				*/
 
 				WzPropertyType getPropertyType() override { return WzPropertyType::Canvas; }
 
-				const std::list<WzImageProperty> & override getWzProperties() { return properties; }
-
-
-				/// <summary>
-				/// Gets a wz property by it's name
-				/// </summary>
-				/// <param name="name">The name of the property</param>
-				/// <returns>The wz property with the specified name</returns>
-				WzImageProperty getWzPropertyByName(std::wstring name) override {
-
-					if (name == L"PNG")
-						return imageProp;
-					foreach(WzImageProperty iwp in properties)
-						if (iwp.Name.ToLower() == name.ToLower())
-							return iwp;
-					return null;
-				}
-				void setWzPropertyByName(std::wstring name) override {
-					if (value != null) {
-						if (name == "PNG")
-						{
-							imageProp = (WzPngProperty)value;
-							return;
-						}
-						value.Name = name;
-						AddProperty(value);
-					}
-
-				}
-
-				WzImageProperty GetProperty(std::wstring name) {
-					for (WzImageProperty iwp : properties)
-						if (iwp.Name.ToLower() == name.ToLower()) {
-							return iwp;
-						}
-					return null;
-				}
-
-				/// Gets a wz property by a path name
-				/// </summary>
-				/// <param name="path">path to property</param>
-				/// <returns>the wz property with the specified name</returns>
-				WzImageProperty GetFromPath(std::wstring path) override {
-					std::vector<std::wstring> segments{ Util::ParseLines(path) };
-					if (segments[0] == L"..") {
-						return ((WzImageProperty)Parent)[path.Substring(name.IndexOf('/') + 1)];
-					}
-					WzImageProperty ret = this;
-					for (int x = 0; x < segments.Length; x++) {
-						bool foundChild = false;
-						if (segments[x] == "PNG") {
-							return imageProp;
-						}
-						for (WzImageProperty& iwp : ret.WzProperties) {
-							if (iwp.Name == segments[x]) {
-								ret = iwp;
-								foundChild = true;
-								break;
-							}
-						}
-						if (!foundChild) {
-							return null;
-						}
-					}
-					return ret;
-				}
+				/*
 				void WriteValue(Util::WzBinaryWriter writer) override {
 					writer.WriteStringValue("Canvas", 0x73, 0x1B);
 					writer.Write((uint8_t)0);
@@ -139,20 +76,11 @@ namespace MapleLib {
 					WzImageProperty::DumpPropertyList(writer, level, this->WzProperties);
 					writer.WriteLine(Util::XmlUtil::Indentation(level) + Util::XmlUtil::CloseTag("WzCanvas"));
 				}
-
-				void AddProperty(WzImageProperty prop) {
-					prop.Parent = this;
-					properties.Add(prop);
-				}
-				void AddProperties(List<WzImageProperty> props) {
-					for (WzImageProperty prop : props) {
-						AddProperty(prop);
-					}
-				}
+				*/
 
 
 				Bitmap GetBitmap() override {
-					return imageProp::GetPNG(false);
+					return imageProp->GetPNG(false);
 				}
 			};
 		}

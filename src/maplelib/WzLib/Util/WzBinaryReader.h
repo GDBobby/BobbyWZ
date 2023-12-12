@@ -44,6 +44,8 @@ namespace MapleLib {
 				/// </summary>
 				/// <param name="filePath">Length of bytes to read</param>
 				std::vector<uint8_t> ReadBytes(int length);
+				void ReadBytesInto(void* out, int length);
+
 				int8_t ReadSByte() {
 					return static_cast<int8_t>(fileBuffer[filePosition++]);
 				}

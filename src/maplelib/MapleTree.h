@@ -8,6 +8,13 @@
 
 #include "WzLib/WzFile.h"
 #include "WzLib/WzProperties/WzNullProperty.h"
+#include "WzLib/WzProperties/WzValueProperty.h"
+#include "WzLib/WzProperties/WzStringProperty.h"
+#include "WzLib/WzProperties/WzCanvasProperty.h"
+#include "WzLib/WzProperties/WzVectorProperty.h"
+#include "WzLib/WzProperties/WzConvexProperty.h"
+#include "WzLib/WzProperties/WzSoundProperty.h"
+#include "WzLib/WzProperties/WzUOLProperty.h"
 
 
 namespace MapleLib {
@@ -30,20 +37,21 @@ namespace MapleLib {
 			//WzSubProperty - can contain WzSubProperty
 			//WzCanvasProperty - can contain WzSubProperty
 			//WzValueProperty
-			MapleTree(std::string& filePath, WzMapleVersion version) :
+			MapleTree(std::wstring& filePath, WzMapleVersion version) :
 				fileContents{ loadFileContents(filePath) },
 				WzIv{ Util::WzTool::GetIvByMapleVersion(version) },
-				binaryReader{ fileContents, WzIv },
+				reader{ fileContents, WzIv },
 				wzFile{ filePath, WzIv},
-				headNode{reinterpret_cast<WzObject*>(&wzFile), &wzFile }
+				headNode{reinterpret_cast<WzObject*>(&wzFile)}
 				//wzFile{filePath, version}
 			{
+				headNode.fileParent = &wzFile;
 				ParseMainWzDirectory(wzFile);
 			}
 
 			std::vector<char> fileContents;
 			std::vector<uint8_t> WzIv;
-			Util::WzBinaryReader binaryReader;
+			Util::WzBinaryReader reader;
 			WzFile wzFile;
 
 			struct MapleNode {
@@ -76,7 +84,7 @@ namespace MapleLib {
 			MapleNode headNode;
 
 		protected:
-			std::vector<char> loadFileContents(std::string& filePath) {
+			std::vector<char> loadFileContents(std::wstring& filePath) {
 				// Open the file
 				std::ifstream file(filePath, std::ios::binary | std::ios::ate);
 				std::vector<char> ret{};
@@ -97,15 +105,33 @@ namespace MapleLib {
 				file.close();
 			}
 			//directory contains wzfile, or wzfile contains directory?
+			void ParseWzFile() {
+				if (wzFile.mapleVersion == WzMapleVersion::GENERATE) {
+					throw std::exception("Cannot call ParseWzFile() if WZ file type is GENERATE");
+				}
+				ParseMainWzDirectory(wzFile);
+			}
+
+			void ParseWzFile(std::vector<uint8_t>& WzIv) {
+				if (wzFile.mapleVersion != WzMapleVersion::GENERATE) {
+					throw std::exception("Cannot call ParseWzFile(byte[] generateKey) if WZ file type is not GENERATE");
+				}
+				this->WzIv = WzIv;
+				ParseMainWzDirectory(wzFile);
+			}
 			void ParseMainWzDirectory(WzFile& wzFile);
 			void ParseDirectory(MapleNode* wzDir);
 
 			/// Parses the image from the wz filetod
 			void ParseImage(MapleNode* node, bool parseEverything = false);
-			static void ParsePropertyList(uint32_t offset, MapleNode* parent, MapleNode* parentImg);
 
-			static WzImageProperty ParseExtendedProp;
-			static WzImageProperty ExtractMore(WzBinaryReader reader, uint offset, int eob, string name, string iname, WzObject parent, WzImage imgParent);
+			//wzimageproperty
+			void ParsePropertyList(uint32_t offset, MapleNode* parent, MapleNode* parentImg);
+
+			void ParseExtendedProp(uint32_t offset, int endOfBlock, std::wstring& name, MapleNode* parent, MapleNode* imgParent);
+
+			//wzimageproperty
+			void ExtractMore(uint32_t offset, int eob, std::wstring& name, std::wstring iname, MapleNode* parent, MapleNode* imgParent);
 		};
 	}
 }

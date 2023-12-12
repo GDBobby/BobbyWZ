@@ -110,14 +110,14 @@ namespace MapleLib {
 
 				if (type == 1) {
 					//01 XX 00 00 00 00 00 OFFSET (4 bytes) 
-					int unknown = reader.ReadInt32();
+					int unknown = reader.ReadTemplateAsCopy<int32_t>();
 					reader.filePosition += 2;
 					//reader.ReadInt16();
 					uint32_t offs = reader.ReadOffset();
 					continue;
 				}
 				else if (type == 2) {
-					int stringOffset = reader.ReadInt32();
+					int stringOffset = reader.ReadTemplateAsCopy<int32_t>();
 					long rememberPos = reader.filePosition;
 					reader.filePosition = reader.header.fstart + stringOffset;
 					type = reader.ReadByte();
@@ -181,12 +181,12 @@ namespace MapleLib {
 			}
 			image->parseEverything = parseEverything;
 			size_t originalPos = reader.filePosition;
-			reader.filePosition = offset;
+			reader.filePosition = image->offset;
 			uint8_t b = reader.ReadByte();
 			if (b != 0x73 || reader.ReadString() != L"Property" || reader.ReadTemplateAsCopy<uint16_t>() != 0) {
 				return;
 			}
-			ParsePropertyList(offset, node, node);
+			ParsePropertyList(image->offset, node, node);
 			//properties.AddRange(WzImageProperty.ParsePropertyList(offset, reader, this, this));
 			image->parsed = true;
 		}
@@ -199,44 +199,44 @@ namespace MapleLib {
 				uint8_t ptype = reader.ReadByte();
 				switch (ptype) {
 				case 0:
-					parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzNullProperty(name)));
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzNullProperty(name)));
 					//properties.Add(new WzNullProperty(name){ Parent = parent });
 					break;
 				case 11:
 				case 2:
-					parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzShortProperty(name, reader.ReadTemplateAsCopy<int16_t>())));
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzShortProperty(name, reader.ReadTemplateAsCopy<int16_t>())));
 					//properties.Add(new WzShortProperty(name, reader.ReadInt16()){ Parent = parent });
 					break;
 				case 3:
 				case 19:
-					parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzIntProperty(name, reader.ReadCompressedInt())));
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzIntProperty(name, reader.ReadCompressedInt())));
 					//properties.Add(new WzIntProperty(name, reader.ReadCompressedInt()){ Parent = parent });
 					break;
 				case 20:
-					parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzLongProperty(name, reader.ReadLong())));
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzLongProperty(name, reader.ReadLong())));
 					//properties.Add(new WzLongProperty(name, reader.ReadLong()){ Parent = parent });
 					break;
 				case 4:
 					uint8_t type = reader.ReadByte();
 					if (type == 0x80) {
-						parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzFloatProperty(name, reader.ReadSingle())));
+						parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzFloatProperty(name, reader.ReadTemplateAsCopy<float>())));
 					}
 					else if (type == 0) {
-						parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzFloatProperty(name, 0.f)));
+						parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzFloatProperty(name, 0.f)));
 					}
 					break;
 				case 5:
-					parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzDoubleProperty(name, reader.ReadDouble())));
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzDoubleProperty(name, reader.ReadTemplateAsCopy<double>())));
 					break;
 				case 8:
-					parent->addChild(reinterpret_cast<WzObject*>(new WzProperties::WzStringProperty(name, reader.ReadStringBlock(offset))));
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzStringProperty(name, reader.ReadStringBlock(offset))));
 					//properties.Add(new WzStringProperty(name, reader.ReadStringBlock(offset)){ Parent = parent });
 					break;
 				case 9:
-					int eob = static_cast<int>(reader.ReadUInt32() + reader.filePosition);
-					WzImageProperty exProp = ParseExtendedProp(reader, offset, eob, name, parent, parentImg);
-					parent->constructChild(reinterpret_cast<WzObject*>(&exProp));
-					properties.Add(exProp);
+					int eob = static_cast<int>(reader.ReadTemplateAsCopy<uint32_t>() + reader.filePosition);
+					ParseExtendedProp(offset, eob, name, parent, parentImg);
+					//parent->constructChild(reinterpret_cast<WzObject*>(ParseExtendedProp(offset, eob, name, parent, parentImg)));
+					//properties.Add(exProp);
 					//parent->addChild(new WzImagePro)
 					reader.filePosition = eob;
 					
@@ -248,71 +248,84 @@ namespace MapleLib {
 			//return properties;
 		}
 
-		WzImageProperty MapleTree::ParseExtendedProp(uint32_t offset, int endOfBlock, std::wstring name, MapleNode* parent, MapleNode* imgParent) {
+		void MapleTree::ParseExtendedProp(uint32_t offset, int endOfBlock, std::wstring& name, MapleNode* parent, MapleNode* imgParent) {
 			switch (reader.ReadByte()) {
 			case 0x01:
 			case 0x1B:
-				return ExtractMore(reader, offset, endOfBlock, name, reader.ReadStringAtOffset(offset + reader.ReadInt32()), parent, imgParent);
+				ExtractMore(offset, endOfBlock, name, reader.ReadStringAtOffset(offset + reader.ReadTemplateAsCopy<int32_t>()), parent, imgParent);
+				break;
 			case 0x00:
 			case 0x73:
-				return ExtractMore(reader, offset, endOfBlock, name, L"", parent, imgParent);
+				ExtractMore(offset, endOfBlock, name, L"", parent, imgParent);
+				break;
 			default:
 				throw std::exception("Invalid byte read at ParseExtendedProp");
 			}
 		}
-		WzImageProperty MapleTree::ExtractMore(uint32_t offset, int eob, std::wstring name, std::wstring iname, MapleNode* parent, MapleNode* imgParent) {
-			if (iname == L"")
+		void MapleTree::ExtractMore(uint32_t offset, int eob, std::wstring& name, std::wstring iname, MapleNode* parent, MapleNode* imgParent) {
+			if (iname == L"") {
 				iname = reader.ReadString();
+			}
 			if (iname == L"Property") {
-				WzSubProperty subProp = new WzSubProperty(name);
-				reader.BaseStream.Position += 2; // Reserved?
-				subProp.AddProperties(WzImageProperty.ParsePropertyList(offset, reader, subProp, imgParent));
-				return subProp;
+				//come back to this
+				//WzSubProperty subProp = new WzSubProperty(name);
+				//reader.BaseStream.Position += 2; // Reserved?
+				//subProp.AddProperties(ParsePropertyList(offset, reader, subProp, imgParent));
+				auto subProp = parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzSubProperty(name)));
+				ParsePropertyList(offset, subProp, imgParent);
+				//return subProp;
 			}
 			else if (iname == L"Canvas") {
-				WzCanvasProperty canvasProp = new WzCanvasProperty(name){ Parent = parent };
-				reader.BaseStream.Position++;
+				reader.filePosition++;
 				if (reader.ReadByte() == 1) {
-					reader.BaseStream.Position += 2;
-					canvasProp.AddProperties(WzImageProperty.ParsePropertyList(offset, reader, canvasProp, imgParent));
+					reader.filePosition += 2;
+					//replace this
+					//canvasProp.AddProperties(ParsePropertyList(offset, reader, canvasProp, imgParent));
 				}
-				canvasProp.PngProperty = new WzPngProperty(reader, imgParent.parseEverything){ Parent = canvasProp };
-				return canvasProp;
+				//replace this
+				auto* canvasProp = parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzCanvasProperty(name)));
+				canvasProp->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzPngProperty(reader, reinterpret_cast<WzImage*>(imgParent->object)->parseEverything)));
+				//canvasProp.PngProperty = new WzProperties::WzPngProperty(reader, imgParent.parseEverything){ Parent = canvasProp };
+				//return canvasProp;
 			}
-			else if (iname == "Shape2D#Vector2D") {
-				WzVectorProperty vecProp = new WzVectorProperty(name);
-				vecProp.x = new WzIntProperty(L"X", reader.ReadCompressedInt());
-				vecProp.y = new WzIntProperty(L"Y", reader.ReadCompressedInt());
-				return vecProp;
+			else if (iname == L"Shape2D#Vector2D") {
+				auto vecProp = new WzProperties::WzVectorProperty{ name };
+				//WzProperties::WzVectorProperty vecProp{ name };
+				vecProp->x.SetValue<int32_t>(reader.ReadCompressedInt());
+				vecProp->y.SetValue<int32_t>(reader.ReadCompressedInt());
+				 parent->constructChild(reinterpret_cast<WzObject*>(vecProp));
+				//return vecProp;
 			}
-
-			switch (iname) {
-			case :
-				
-			case "Shape2D#Convex2D":
-				WzConvexProperty convexProp = new WzConvexProperty(name){ Parent = parent };
+			else if (iname == L"Shape2D#Convex2D") {
+				auto* convexProp = parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzConvexProperty(name)));
 				int convexEntryCount = reader.ReadCompressedInt();
-				convexProp.WzProperties.Capacity = convexEntryCount;
-				for (int i = 0; i < convexEntryCount; i++)
-				{
-					convexProp.AddProperty(ParseExtendedProp(reader, offset, 0, name, convexProp, imgParent));
+				for (int i = 0; i < convexEntryCount; i++) {
+					
+					ParseExtendedProp(offset, 0, name, convexProp, imgParent);
 				}
-				return convexProp;
-			case "Sound_DX8":
-				WzSoundProperty soundProp = new WzSoundProperty(name, reader, imgParent.parseEverything){ Parent = parent };
-				return soundProp;
-			case "UOL":
-				reader.BaseStream.Position++;
-				switch (reader.ReadByte())
-				{
+			}
+			else if(iname == L"Sound_DX8"){
+				parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzSoundProperty(name, reader, reinterpret_cast<WzImage*>(imgParent->object)->parseEverything)));
+				//return soundProp;
+			}
+			else if (iname == L"UOL") {
+				reader.filePosition++;
+				switch (reader.ReadByte()) {
 				case 0:
-					return new WzUOLProperty(name, reader.ReadString()){ Parent = parent };
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzUOLProperty(name, reader.ReadString())));
+					break;
+					//return new WzUOLProperty(name, reader.ReadString()){ Parent = parent };
 				case 1:
-					return new WzUOLProperty(name, reader.ReadStringAtOffset(offset + reader.ReadInt32())){ Parent = parent };
+					parent->constructChild(reinterpret_cast<WzObject*>(new WzProperties::WzUOLProperty(name, reader.ReadStringAtOffset(offset + reader.ReadTemplateAsCopy<int32_t>()))));
+					//return new WzUOLProperty(name, reader.ReadStringAtOffset(offset + reader.ReadInt32())){ Parent = parent };
+					break;
+				default:
+					throw std::exception("Unsupported UOL type");
 				}
-				throw new Exception("Unsupported UOL type");
-			default:
-				throw new Exception("Unknown iname: " + iname);
+			}
+			else {
+				printf("unknown iname : %s \n", iname.c_str());
+				throw std::exception("unknown iname");
 			}
 		}
 	}

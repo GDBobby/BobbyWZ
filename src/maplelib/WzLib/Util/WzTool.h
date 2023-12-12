@@ -2,6 +2,7 @@
 
 #include "../WzMapleVersion.h"
 #include "../../crypto/CryptoConstants.h"
+#include "../../WzLib/WzFile.h"
 
 #include <cstdint>
 #include <string>
@@ -111,7 +112,7 @@ namespace MapleLib {
 					return result;
 				}
 
-				static double GetDecryptionSuccessRate(std::wstring wzPath, WzMapleVersion encVersion, short& version, bool hasVersion) {
+				static double GetDecryptionSuccessRate(std::wstring& wzPath, WzMapleVersion encVersion, short& version, bool hasVersion) {
 					if (hasVersion) {
 						WzFile wzf = new WzFile(wzPath, version, encVersion);
 						wzf.ParseWzFile();
@@ -140,9 +141,9 @@ namespace MapleLib {
 				static WzMapleVersion DetectMapleVersion(std::wstring wzFilePath, short& fileVersion) {
 					std::unordered_map<WzMapleVersion, double> mapleVersionSuccessRates{};
 					short version = 0;
-					mapleVersionSuccessRates.Add(WzMapleVersion::GMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::GMS, version));
-					mapleVersionSuccessRates.Add(WzMapleVersion::EMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::EMS, version));
-					mapleVersionSuccessRates.Add(WzMapleVersion::BMS, GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::BMS, version));
+					mapleVersionSuccessRates[WzMapleVersion::GMS] = GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::GMS, version);
+					mapleVersionSuccessRates[WzMapleVersion::EMS] = GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::EMS, version);
+					mapleVersionSuccessRates[WzMapleVersion::BMS] = GetDecryptionSuccessRate(wzFilePath, WzMapleVersion::BMS, version);
 					fileVersion = version;
 					WzMapleVersion mostSuitableVersion = WzMapleVersion::GMS;
 					double maxSuccessRate = 0;

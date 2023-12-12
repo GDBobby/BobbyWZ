@@ -15,13 +15,17 @@ namespace MapleLib {
             private:
                 static bool wasFPNGinit;
             public:
+
+                //WzPngProperty() { }
+                WzPngProperty(Util::WzBinaryReader& reader, bool parseNow);
+
                 int width, height, format, format2;
                 std::vector<uint8_t> compressedBytes{};
                 Bitmap png;
                 //internal WzImage imgParent;
                 bool listWzUsed = false;
+                Util::WzBinaryReader& reader;
 
-                Util::WzBinaryReader wzReader; //keep this as a member or call it then deconstruct it??
                 int64_t offs;
 
                 void Dispose() {
@@ -30,7 +34,8 @@ namespace MapleLib {
                 std::wstring getName() {
                     return L"PNG";
                 }
-                void setName(std::wstring) {}
+
+                void setName(std::wstring& name) {}
                 void* getWzValue() override {
                     return &GetPNG(false); //need to fix this, its returning a temporary variable
                 }
@@ -45,19 +50,8 @@ namespace MapleLib {
                     }
                 }
 
-                WzImageProperty* DeepClone() override {
-                    WzPngProperty clone{};
-                    clone.SetPNG(GetPNG(false));
-                    return &clone; //need to fix this, its returning a temporary variable
-                }
-
                 void* getWzValue() { return &GetPNG(false); }//need to fix this, its returning a temporary variable
-                void WriteValue(Util::WzBinaryWriter writer) override {
-                    throw std::exception("Cannot write a PngProperty");
-                }
-                /// <summary>
-                /// The WzPropertyType of the property
-                /// </summary>
+
                 WzPropertyType getPropertyType() override { return WzPropertyType::PNG; }
 
                 int getFormat() { return format + format2; }
@@ -82,8 +76,6 @@ namespace MapleLib {
                     return GetCompressedBytes(false);
                 }
 
-                WzPngProperty() { }
-                WzPngProperty(Util::WzBinaryReader reader, bool parseNow);
 
 
                 std::vector<uint8_t> GetCompressedBytes(bool saveInMemory);
@@ -94,7 +86,7 @@ namespace MapleLib {
                 std::vector<uint8_t> Compress(const std::vector<uint8_t>& decompressedBuffer);
 
                 //the wzkey will come from the parent image
-                void ParsePng(const std::vector<uint8_t>& wzKey);
+                void ParsePng();
 
                 void CompressPng(Bitmap& bmp);
 
@@ -119,6 +111,20 @@ namespace MapleLib {
                 static void ExpandAlphaTable(uint8_t* alpha, const std::vector<uint8_t>& rawData, int offset);
 
                 static Color RGB565ToColor(uint16_t val);
+
+                /*
+
+                void WriteValue(Util::WzBinaryWriter writer) override {
+                    throw std::exception("Cannot write a PngProperty");
+                }
+
+                WzImageProperty* DeepClone() override {
+                    WzPngProperty clone{};
+                    clone.SetPNG(GetPNG(false));
+                    return &clone; //need to fix this, its returning a temporary variable
+                }
+
+                */
             };
         }
     }

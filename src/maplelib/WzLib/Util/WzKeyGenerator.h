@@ -23,11 +23,14 @@ namespace MapleLib {
 					/// <param name="pathToZlz">Path to ZLZ.dll</param>
 					/// <returns>The wz key</returns>
 			public:
-				static uint8_t* GenerateKeyFromZlz(std::string pathToZlz) {
+				static std::vector<uint8_t> GenerateKeyFromZlz(std::string pathToZlz) {
 					std::ifstream zlzStream{ pathToZlz };
 
 					//FileStream zlzStream = File.OpenRead(pathToZlz);
-					uint8_t* wzKey = GenerateWzKey(GetIvFromZlz(zlzStream), GetAesKeyFromZlz(zlzStream));
+					auto ivZLZ = GetIvFromZlz(zlzStream);
+					auto aesZLZ = GetAesKeyFromZlz(zlzStream);
+
+					std::vector<uint8_t> wzKey = GenerateWzKey(ivZLZ, aesZLZ);
 					zlzStream.close();
 					return wzKey;
 				}
@@ -46,8 +49,8 @@ namespace MapleLib {
 					return iv;
 				}
 			private:
-				static uint8_t* GetAesKeyFromZlz(std::ifstream& zlzStream) {
-					uint8_t aes[32];// = new byte[32];
+				static std::vector<uint8_t> GetAesKeyFromZlz(std::ifstream& zlzStream) {
+					std::vector<uint8_t> aes(32);// = new byte[32];
 
 					zlzStream.seekg(0x10060, std::ios::beg);
 					for (int i = 0; i < 8; i++) {
@@ -61,27 +64,21 @@ namespace MapleLib {
 					return GenerateWzKey(WzIv, MapleLib::CryptoLib::CryptoConstants::getTrimmedUserKey());
 				}
 
-				static std::vector<uint8_t> GenerateWzKey(std::vector<uint8_t>& WzIv, std::vector<uint8_t>& AesKey) {
-					if (((int32_t*)WzIv)[0] == 0) {
-						return new uint8_t[UINT16_MAX]; //memory leak here if i dont fix this. need to replace it iwth a vector or something
+				static std::vector<uint8_t> GenerateWzKey(std::vector<uint8_t>& WzIv, std::vector<uint8_t> AesKey) {
+					if (*reinterpret_cast<const int*>(&WzIv[0]) == 0) {
+						return std::vector<uint8_t>(UINT16_MAX, 0); // Assuming ushort.MaxValue is equivalent to C#'s ushort.MaxValue
 					}
 
-					// Set up AES cipher with a 256-bit key and ECB mode
-					CryptoPP::SecByteBlock key(AesKey, 32); // 256 bits = 32 bytes
-					CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption encryptor;
-					encryptor.SetKey(key, key.size());
+					CryptoPP::AES::Encryption aesEncryption(&AesKey[0], CryptoPP::AES::DEFAULT_KEYLENGTH);
+					CryptoPP::ECB_Mode_ExternalCipher::Encryption ecbEncryption(aesEncryption);
 
-					uint8_t* input = CryptoLib::MapleCrypto::multiplyBytes(WzIv, 4, 4);
-					uint8_t wzKey[UINT16_MAX];
+					std::vector<uint8_t> input = CryptoLib::MapleCrypto::multiplyBytes(WzIv, 4, 4);
+					std::vector<uint8_t> wzKey(UINT16_MAX);
 
-					//for (int i = 0; i < (wzKey.Length / 16); i++) ??
-					for (int i = 0; i < (UINT16_MAX / 16); i++) {
-						encryptor.ProcessData(wzKey + (i * 16), input, 16);
-						input = wzKey + (i * 16);
+					for (size_t i = 0; i < wzKey.size() / 16; i++) {
+						ecbEncryption.ProcessData(&input[0], &input[0], 16);
+						std::copy(input.begin(), input.begin() + 16, wzKey.begin() + (i * 16));
 					}
-					encryptor.ProcessData(wzKey + (UINT16_MAX - 15), input, 16);
-
-					delete[] input;
 
 					return wzKey;
 				}

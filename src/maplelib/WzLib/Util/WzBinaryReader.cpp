@@ -80,6 +80,10 @@ namespace MapleLib {
 				}
 				return ret;
 			}
+			void WzBinaryReader::ReadBytesInto(void* out, int length) {
+				memcpy(out, &fileBuffer[filePosition], length);
+				filePosition += length;
+			}
 
 			template <typename T>
 			T WzBinaryReader::ReadTemplateAsCopy() {
