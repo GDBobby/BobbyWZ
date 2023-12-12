@@ -14,8 +14,11 @@ namespace MapleLib {
 			/// A property that can contain sub properties and has one png image
 			/// </summary>
 			class WzCanvasProperty : WzImageProperty {
+			public:	
+				WzCanvasProperty() { }
+				WzCanvasProperty(std::wstring name) : name{ name } { }
+
 			private:
-				std::list<WzImageProperty> properties{};
 				WzPngProperty imageProp;
 				std::wstring name;
 				WzObject parent;
@@ -137,25 +140,6 @@ namespace MapleLib {
 					writer.WriteLine(Util::XmlUtil::Indentation(level) + Util::XmlUtil::CloseTag("WzCanvas"));
 				}
 
-				/*
-				public override void Dispose()
-				{
-					name = null;
-					imageProp.Dispose();
-					imageProp = null;
-					foreach(WzImageProperty prop in properties)
-					{
-						prop.Dispose();
-					}
-					properties.Clear();
-					properties = null;
-				}
-				*/
-
-				//why is a constructor down here?		
-				WzCanvasProperty() { }
-				WzCanvasProperty(std::wstring name) : name{ name } { }
-
 				void AddProperty(WzImageProperty prop) {
 					prop.Parent = this;
 					properties.Add(prop);
@@ -166,18 +150,8 @@ namespace MapleLib {
 					}
 				}
 
-				public void RemoveProperty(WzImageProperty prop) {
-					prop.Parent = null;
-					properties.Remove(prop);
-				}
 
-
-				public void ClearProperties() {
-					for (WzImageProperty prop : properties) { prop.Parent = null; }
-					properties.clear();
-				}
-
-				public override Bitmap GetBitmap() {
+				Bitmap GetBitmap() override {
 					return imageProp::GetPNG(false);
 				}
 			};

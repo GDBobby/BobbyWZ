@@ -14,32 +14,39 @@ namespace MapleLib {
 			/// </summary>
 			class WzNullProperty : public WzImageProperty {
 			public:
-				std::wstring name;
-				WzObject parent;
+
+				WzNullProperty() { }
+				WzNullProperty(std::wstring propName) : WzImageProperty{ name } {}
+
+				std::wstring getName() {
+					return name;
+				}
+				void setName(std::wstring& name) {
+					this->name = name;
+				}
+
 				//internal WzImage imgParent;
 
-				void SetValue(object value) {
+				//void SetValue(object value) {
 					//replace this
-					throw std::exception("not implemented");
-				}
+				//	throw std::exception("not implemented");
+				//}
 
-				WzImageProperty DeepClone() override {
-					return WzNullProperty(name);
-				}
+				//WzImageProperty DeepClone() override {
+				//	return WzNullProperty(name);
+				//}
 
-				WzPropertyType getPropertyType override { return WzPropertyType::Null; }
+				WzPropertyType getPropertyType() override { return WzPropertyType::Null; }
 
-				WzObjectType getObjectType override{ return WzObjectType.Property; }
-
+				WzObjectType getObjectType() override{ return WzObjectType::Property; }
+				/*
 				void WriteValue(Util::WzBinaryWriter writer) override {
-					writer.Write((byte)0);
+					writer.Write((uint8_t)0);
 				}
 				void ExportXml(StreamWriter writer, int level) override {
 					writer.WriteLine(Util::XmlUtil::Indentation(level) + Util::XmlUtil::EmptyNamedTag("WzNull", this.Name));
 				}
-
-				public WzNullProperty() { }
-				public WzNullProperty(std::wstring propName) : name{ propName } {}
+				*/
 
 			};
 		}

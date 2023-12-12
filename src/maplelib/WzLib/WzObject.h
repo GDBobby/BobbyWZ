@@ -11,6 +11,10 @@ namespace MapleLib {
         /// An abstract class for wz objects
         /// </summary>
         class WzObject {
+        public:
+            WzObject() {}
+            WzObject(std::wstring& name) : name{ name } {}
+
         protected:
             void* tag{ nullptr };// Used in HaCreator to save already parsed images
             void* tag2{ nullptr };// Used in HaCreator's MapSimulator to save already parsed textures
@@ -21,10 +25,9 @@ namespace MapleLib {
         public:
 
             //public abstract void Dispose(); explicit deconstruction while maintaining the object?
-            virtual void Dispose() = 0;
 
             virtual std::wstring getName() = 0;
-            virtual void setName(std::wstring) = 0;
+            virtual void setName(std::wstring&) = 0;
             virtual WzObjectType getObjectType() = 0;
             /*
             virtual std::wstring getFullPath() {

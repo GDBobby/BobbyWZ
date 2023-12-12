@@ -14,13 +14,17 @@ namespace MapleLib {
 		/// <summary>
 		/// A directory in the wz file, which may contain sub directories or wz images
 		/// </summary>
-		class WzDirectory : WzObject {
+		class WzDirectory : public WzObject {
 		public:
-			std::list<WzImage> images;
-			std::list<WzDirectory> subDirs{};
-			Util::WzBinaryReader reader;
+			WzDirectory() { }
+			WzDirectory(std::wstring& name) : WzObject{ name } {}
+			/// Creates a WzDirectory
+			WzDirectory(std::wstring dirName, uint32_t verHash, std::vector<uint8_t>& WzIv) : WzObject{ dirName },
+				hash{ verHash },
+				WzIv{ WzIv }
+			{}
+
 			uint32_t offset = 0;
-			std::wstring name;
 			uint32_t hash;
 			int size, checksum, offsetSize;
 			std::vector<uint8_t> WzIv;
@@ -28,128 +32,16 @@ namespace MapleLib {
 			WzObjectType getObjectType() {
 				return WzObjectType::Directory;
 			}
-
-			/// <summary>
-			/// Disposes the obejct
-			/// </summary>
-			void Dispose() override {
-				//reader.dipose();
-				for (WzImage& img : images) {
-					img.Dispose();
-				}
-				for(WzDirectory & dir : subDirs) {
-					dir.Dispose();
-				}
-				images.clear();
-				subDirs.clear();
+			void setName(std::wstring& nextName) {
+				name = nextName;
+			}
+			std::wstring getName() {
+				return name;
 			}
 
 			//public int BlockSize { get { return size; } set { size = value; } }
 
 			//public int Checksum{ get { return checksum; } set { checksum = value; } }
-
-			std::list<WzDirectory> getWzDirectories() { return subDirs; }
-			std::list<WzImage> getWzImages() { return images; }
-
-
-			void searchSet(std::wstring value) {
-				if (value != null) {
-					value.name = name;
-					if (value is WzDirectory) {
-						AddDirectory((WzDirectory)value);
-					}
-					else if (value is WzImage) {
-						AddImage((WzImage)value);
-					}
-					else {
-						throw exception("must be directory or image");
-						//throw new ArgumentException("Value must be a Directory or Image");
-					}
-				}
-			}
-			WzObject searchGet(std::wstring name) { //might need to have this return a object type as well
-				for (WzImage& i : images) {
-					if (i.Name.ToLower() == name.ToLower()){
-						return i;
-					}
-				}
-				for (WzDirectory& d : subDirs) {
-					if (d.Name.ToLower() == name.ToLower()) {
-						return d;
-					}
-				}
-				//throw new KeyNotFoundException("No wz image or directory was found with the specified name");
-				return null;
-			}
-
-			public WzDirectory() { }
-			public WzDirectory(std::wstring name) : name{ name } {}
-			/// Creates a WzDirectory
-			WzDirectory(Util::WzBinaryReader reader, std::wstring dirName, uint32_t verHash, uint8_t* WzIv) :
-				reader{reader},
-				name{dirName},
-				hash{verHash},
-				WzIv{WzIv},
-			{}
-
-			void ParseDirectory(){
-				int entryCount = reader.ReadCompressedInt();
-				for (int i = 0; i < entryCount; i++) {
-					uint8_t type = reader.ReadByte();
-					std::wstring fname{""};
-					int fsize{};
-					int checksum{};
-					uint32_t offset{};
-
-					long rememberPos = 0;
-					if (type == 1) //01 XX 00 00 00 00 00 OFFSET (4 bytes) 
-					{
-						int unknown = reader.ReadInt32();
-						reader.ReadInt16();
-						uint32_t offs = reader.ReadOffset();
-						continue;
-					}
-					else if (type == 2){
-						int stringOffset = reader.ReadInt32();
-						rememberPos = reader.BaseStream.Position;
-						reader.BaseStream.Position = reader.Header.FStart + stringOffset;
-						type = reader.ReadByte();
-						fname = reader.ReadString();
-					}
-					else if (type == 3 || type == 4) {
-						fname = reader.ReadString();
-						rememberPos = reader.BaseStream.Position;
-					}
-					else
-					{}
-
-					reader.BaseStream.Position = rememberPos;
-					fsize = reader.ReadCompressedInt();
-					checksum = reader.ReadCompressedInt();
-					offset = reader.ReadOffset();
-					if (type == 3) {
-						WzDirectory subDir{ reader, fname, hash, WzIv) };
-						subDir.BlockSize = fsize;
-						subDir.Checksum = checksum;
-						subDir.Offset = offset;
-						subDir.Parent = this;
-						subDirs.Add(subDir);
-					}
-					else {
-						WzImage img{ fname, reader };
-						img.BlockSize = fsize;
-						img.Checksum = checksum;
-						img.Offset = offset;
-						img.Parent = this;
-						images.Add(img);
-					}
-				}
-
-				for(WzDirectory& subdir : subDirs) {
-					reader.BaseStream.Position = subdir.offset;
-					subdir.ParseDirectory();
-				}
-			}
 
 			void SaveImages(BinaryWriter wzWriter, FileStream fs) {
 				for(WzImage& img : images) {

@@ -8,6 +8,8 @@ WzFile includes WzTool, WzTool includes WzFile
 
 removed WzFile from WzDirectory
 
+In MapleTree::ParseMainWzDirectory (moved from WzFile)
+the subdir is parsed twice? for no intelligible reason. come back to this if debugging
 
 go through
 AESEncryotion, CryptoConstants, MapleCrypto, MapleCustomEncryptions,
