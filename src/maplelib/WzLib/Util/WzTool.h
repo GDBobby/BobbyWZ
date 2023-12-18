@@ -2,7 +2,8 @@
 
 #include "../WzMapleVersion.h"
 #include "../../crypto/CryptoConstants.h"
-#include "../../WzLib/WzFile.h"
+#include "../WzFile.h"
+#include "../WzParsing.h"
 
 #include <cstdint>
 #include <string>
@@ -101,9 +102,11 @@ namespace MapleLib {
 						throw std::exception("these are not supported \n");
 						return {};
 					}
-				}
+				}				
+
 
 			private:
+
 				static int GetRecognizedCharacters(std::wstring source) {
 					int result = 0;
 					for (auto& c : source) {
@@ -112,10 +115,11 @@ namespace MapleLib {
 					return result;
 				}
 
-				static double GetDecryptionSuccessRate(std::wstring& wzPath, WzMapleVersion encVersion, short& version, bool hasVersion) {
+				static double GetDecryptionSuccessRate(std::wstring& wzPath, std::vector<uint8_t>& wzIV, WzBinaryReader& reader, WzMapleVersion encVersion, short& version, bool hasVersion) {
 					if (hasVersion) {
-						WzFile wzf = new WzFile(wzPath, version, encVersion);
-						wzf.ParseWzFile();
+						WzFile wzf{ wzPath, version, encVersion };
+						MapleNode headNode{reinterpret_cast<WzObject*>(&wzf)};
+						WzParsing::ParseWzFile(wzf, wzIV, reader, headNode);
 					}
 					else {
 						WzFile wzf = new WzFile(wzPath, encVersion);
@@ -136,7 +140,6 @@ namespace MapleLib {
 					delete wzf;
 					return (double)recognizedChars / (double)totalChars;
 				}
-
 			public:
 				static WzMapleVersion DetectMapleVersion(std::wstring wzFilePath, short& fileVersion) {
 					std::unordered_map<WzMapleVersion, double> mapleVersionSuccessRates{};
